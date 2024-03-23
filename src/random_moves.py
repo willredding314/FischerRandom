@@ -15,7 +15,6 @@ for agent in env.agent_iter():
     action = env.action_space(agent).sample(mask)
 
     env.step(action)
-    input("next move")
 
 
 env.close()
