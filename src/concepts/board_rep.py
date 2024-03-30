@@ -30,10 +30,10 @@ pos = {
           ['b','p','-','-','-','-','P','B'],
           ['n','p','-','-','-','-','P','N'],
           ['r','p','-','-','-','-','P','R']],
-    'c': [True, True, True, True],
-    'e': None,
-    'w': True,
-    'm': [0, 1]
+    'c': [True, True, True, True], # castling rights 
+    'e': None, #enpassant
+    'w': True, # white to move?
+    'm': [0, 1] # move counts
 }
 
 def scale_factor(pos, eg=None):
