@@ -1763,6 +1763,11 @@ def threats_eg(pos):
             v += [0, 46, 68, 60, 38, 41, 0][rook_threat(pos, s)]
     return v
 
+######### END THREATS
+
+
+######### BEGIN WINNABLE
+
 def winnable(pos, square):
     if square is not None:
         return 0
@@ -1798,7 +1803,18 @@ def winnable(pos, square):
             - 110)
 
 
+def winnable_total_mg(pos, v=None):
+    if v is None:
+        v = middle_game_evaluation(pos, True)
+    return (1 if v > 0 else -1 if v < 0 else 0) * max(min(winnable(pos) + 50, 0), -abs(v))
 
+
+def winnable_total_eg(pos, v=None):
+    if v is None:
+        v = end_game_evaluation(pos, True)
+    return (1 if v > 0 else -1 if v < 0 else 0) * max(winnable(pos), -abs(v))
+
+############# END WINNABLE
 
 
 
