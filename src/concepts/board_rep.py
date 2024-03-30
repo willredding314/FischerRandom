@@ -14,11 +14,14 @@ def colorflip(pos):
             board[x][y] = board[x][y].lower() if color else board[x][y].upper()
     return {'b': board, 'c': [pos['c'][2], pos['c'][3], pos['c'][0], pos['c'][1]], 'e': [pos['e'][0], 7-pos['e'][1]] if pos['e'] is not None else None, 'w': not pos['w'], 'm': [pos['m'][0], pos['m'][1]]}
 
-def sum(pos, func, param):
+def sum(pos, func, param = None):
     sum = 0
     for x in range(8):
         for y in range(8):
-            sum += func(pos, {'x': x, 'y': y}, param)
+            if param:
+                sum += func(pos, {'x': x, 'y': y}, param)
+            else:
+                sum += func(pos, {'x': x, 'y': y})
     return sum
 
 pos = {

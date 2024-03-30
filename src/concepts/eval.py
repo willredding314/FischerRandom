@@ -1,8 +1,10 @@
+from board_rep import *
+
 # MAIN EVALUATIONS
 
 def main_evaluation(pos):
-    mg = middle_game_evaluation(pos)
-    eg = end_game_evaluation(pos)
+    mg = middle_game_evaluation(pos, True)
+    eg = end_game_evaluation(pos, True)
     p = phase(pos)
     rule50 = rule50(pos)
     eg = eg * scale_factor(pos, eg) / 64
@@ -49,46 +51,46 @@ def end_game_evaluation(pos, nowinnable):
 
 # BEGIN ATTACK
 
-def pinned_direction(pos, square):
+def pinned_direction(pos, square = None):
     if square is None:
         return sum(pos, pinned_direction)
-    if board(pos, square.x, square.y).upper() not in "PNBRQK":
+    if board(pos, square['x'], square['y']).upper() not in "PNBRQK":
         return 0
     color = 1
-    if board(pos, square.x, square.y) not in "PNBRQK":
+    if board(pos, square['x'], square['y']) not in "PNBRQK":
         color = -1
     for i in range(8):
         ix = (i + (i > 3)) % 3 - 1
         iy = (((i + (i > 3)) // 3) << 0) - 1
         king = False
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
             if b == "K":
                 king = True
             if b != "-":
                 break
         if king:
             for d in range(1, 8):
-                b = board(pos, square.x - d * ix, square.y - d * iy)
+                b = board(pos, square['x'] - d * ix, square['y'] - d * iy)
                 if b == "q" or (b == "b" and ix * iy != 0) or (b == "r" and ix * iy == 0):
                     return abs(ix + iy * 3) * color
                 if b != "-":
                     break
     return 0
 
-def knight_attack(pos, square, s2):
+def knight_attack(pos, s2, square = None):
     if square is None:
         return sum(pos, knight_attack)
     v = 0
     for i in range(8):
         ix = ((i > 3) + 1) * (((i % 4) > 1) * 2 - 1)
         iy = (2 - (i > 3)) * ((i % 2 == 0) * 2 - 1)
-        b = board(pos, square.x + ix, square.y + iy)
-        if b == "N" and (s2 is None or s2.x == square.x + ix and s2.y == square.y + iy) and not pinned(pos, {"x": square.x + ix, "y": square.y + iy}):
+        b = board(pos, square['x'] + ix, square['y'] + iy)
+        if b == "N" and (s2 is None or s2.x == square['x'] + ix and s2.y == square['y'] + iy) and not pinned(pos, {"x": square['x'] + ix, "y": square['y'] + iy}):
             v += 1
     return v
 
-def bishop_xray_attack(pos, square, s2):
+def bishop_xray_attack(pos, s2, square = None):
     if square is None:
         return sum(pos, bishop_xray_attack)
     v = 0
@@ -96,16 +98,16 @@ def bishop_xray_attack(pos, square, s2):
         ix = ((i > 1) * 2 - 1)
         iy = ((i % 2 == 0) * 2 - 1)
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
-            if b == "B" and (s2 is None or (s2.x == square.x + d * ix and s2.y == square.y + d * iy)):
-                dir = pinned_direction(pos, {"x": square.x + d * ix, "y": square.y + d * iy})
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
+            if b == "B" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
+                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
                 if dir == 0 or abs(ix + iy * 3) == dir:
                     v += 1
             if b != "-" and b != "Q" and b != "q":
                 break
     return v
 
-def rook_xray_attack(pos, square, s2):
+def rook_xray_attack(pos, s2, square = None):
     if square is None:
         return sum(pos, rook_xray_attack)
     v = 0
@@ -113,16 +115,16 @@ def rook_xray_attack(pos, square, s2):
         ix = -1 if i == 0 else 1 if i == 1 else 0
         iy = -1 if i == 2 else 1 if i == 3 else 0
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
-            if b == "R" and (s2 is None or (s2.x == square.x + d * ix and s2.y == square.y + d * iy)):
-                dir = pinned_direction(pos, {"x": square.x + d * ix, "y": square.y + d * iy})
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
+            if b == "R" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
+                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
                 if dir == 0 or abs(ix + iy * 3) == dir:
                     v += 1
             if b != "-" and b != "R" and b != "Q" and b != "q":
                 break
     return v
 
-def queen_attack(pos, square, s2):
+def queen_attack(pos, s2, square = None):
     if square is None:
         return sum(pos, queen_attack)
     v = 0
@@ -130,9 +132,9 @@ def queen_attack(pos, square, s2):
         ix = (i + (i > 3)) % 3 - 1
         iy = (((i + (i > 3)) // 3) << 0) - 1
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
-            if b == "Q" and (s2 is None or (s2.x == square.x + d * ix and s2.y == square.y + d * iy)):
-                dir = pinned_direction(pos, {"x": square.x + d * ix, "y": square.y + d * iy})
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
+            if b == "Q" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
+                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
                 if dir == 0 or abs(ix + iy * 3) == dir:
                     v += 1
             if b != "-":
@@ -140,27 +142,27 @@ def queen_attack(pos, square, s2):
     return v
 
 
-def pawn_attack(pos, square):
+def pawn_attack(pos, square = None):
     if square is None:
         return sum(pos, pawn_attack)
     v = 0
-    if board(pos, square.x - 1, square.y + 1) == "P":
+    if board(pos, square['x'] - 1, square['y'] + 1) == "P":
         v += 1
-    if board(pos, square.x + 1, square.y + 1) == "P":
+    if board(pos, square['x'] + 1, square['y'] + 1) == "P":
         v += 1
     return v
 
-def king_attack(pos, square):
+def king_attack(pos, square = None):
     if square is None:
         return sum(pos, king_attack)
     for i in range(8):
         ix = (i + (i > 3)) % 3 - 1
         iy = (((i + (i > 3)) // 3) << 0) - 1
-        if board(pos, square.x + ix, square.y + iy) == "K":
+        if board(pos, square['x'] + ix, square['y'] + iy) == "K":
             return 1
     return 0
 
-def attack(pos, square):
+def attack(pos, square = None):
     if square is None:
         return sum(pos, attack)
     v = 0
@@ -172,7 +174,7 @@ def attack(pos, square):
     v += queen_attack(pos, square)
     return v
 
-def queen_attack_diagonal(pos, square, s2):
+def queen_attack_diagonal(pos, s2, square = None):
     if square is None:
         return sum(pos, queen_attack_diagonal)
     v = 0
@@ -182,19 +184,19 @@ def queen_attack_diagonal(pos, square, s2):
         if ix == 0 or iy == 0:
             continue
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
-            if b == "Q" and (s2 is None or s2.x == square.x + d * ix and s2.y == square.y + d * iy):
-                dir = pinned_direction(pos, {"x": square.x + d * ix, "y": square.y + d * iy})
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
+            if b == "Q" and (s2 is None or s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy):
+                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
                 if dir == 0 or abs(ix + iy * 3) == dir:
                     v += 1
             if b != "-":
                 break
     return v
 
-def pinned(pos, square):
+def pinned(pos, square = None):
     if square is None:
         return sum(pos, pinned)
-    if board(pos, square.x, square.y) not in "PNBRQK":
+    if board(pos, square['x'], square['y']) not in "PNBRQK":
         return 0
     return 1 if pinned_direction(pos, square) > 0 else 0
 
@@ -202,48 +204,48 @@ def pinned(pos, square):
 
 # BEGIN HELPERS
 
-def rank(pos, square):
+def rank(pos, square = None):
     if square is None:
         return sum(pos, rank)
-    return 8 - square.y
+    return 8 - square['y']
 
-def file(pos, square):
+def file(pos, square = None):
     if square is None:
         return sum(pos, file)
-    return 1 + square.x
+    return 1 + square['x']
 
-def bishop_count(pos, square):
+def bishop_count(pos, square = None):
     if square is None:
         return sum(pos, bishop_count)
-    if board(pos, square.x, square.y) == "B":
+    if board(pos, square['x'], square['y']) == "B":
         return 1
     return 0
 
-def queen_count(pos, square):
+def queen_count(pos, square = None):
     if square is None:
         return sum(pos, queen_count)
-    if board(pos, square.x, square.y) == "Q":
+    if board(pos, square['x'], square['y']) == "Q":
         return 1
     return 0
 
-def pawn_count(pos, square):
+def pawn_count(pos, square = None):
     if square is None:
         return sum(pos, pawn_count)
-    if board(pos, square.x, square.y) == "P":
+    if board(pos, square['x'], square['y']) == "P":
         return 1
     return 0
 
-def knight_count(pos, square):
+def knight_count(pos, square = None):
     if square is None:
         return sum(pos, knight_count)
-    if board(pos, square.x, square.y) == "N":
+    if board(pos, square['x'], square['y']) == "N":
         return 1
     return 0
 
-def rook_count(pos, square):
+def rook_count(pos, square = None):
     if square is None:
         return sum(pos, rook_count)
-    if board(pos, square.x, square.y) == "R":
+    if board(pos, square['x'], square['y']) == "R":
         return 1
     return 0
 
@@ -261,40 +263,40 @@ def opposite_bishops(pos):
                 color[1] = (x + y) % 2
     return 0 if color[0] == color[1] else 1
 
-def king_distance(pos, square):
+def king_distance(pos, square = None):
     if square is None:
         return sum(pos, king_distance)
     for x in range(8):
         for y in range(8):
             if board(pos, x, y) == "K":
-                return max(abs(x - square.x), abs(y - square.y))
+                return max(abs(x - square['x']), abs(y - square['y']))
     return 0
 
-def king_ring(pos, square, full):
+def king_ring(pos, full, square = None):
     if square is None:
         return sum(pos, king_ring)
-    if not full and board(pos, square.x + 1, square.y - 1) == "p" and board(pos, square.x - 1, square.y - 1) == "p":
+    if not full and board(pos, square['x'] + 1, square['y'] - 1) == "p" and board(pos, square['x'] - 1, square['y'] - 1) == "p":
         return 0
     for ix in range(-2, 3):
         for iy in range(-2, 3):
-            if board(pos, square.x + ix, square.y + iy) == "k" and (ix >= -1 and ix <= 1 or square.x + ix == 0 or square.x + ix == 7) and (iy >= -1 and iy <= 1 or square.y + iy == 0 or square.y + iy == 7):
+            if board(pos, square['x'] + ix, square['y'] + iy) == "k" and (ix >= -1 and ix <= 1 or square['x'] + ix == 0 or square['x'] + ix == 7) and (iy >= -1 and iy <= 1 or square['y'] + iy == 0 or square['y'] + iy == 7):
                 return 1
     return 0
 
-def piece_count(pos, square):
+def piece_count(pos, square = None):
     if square is None:
         return sum(pos, piece_count)
-    i = "PNBRQK".index(board(pos, square.x, square.y))
+    i = "PNBRQK".index(board(pos, square['x'], square['y']))
     return 1 if i >= 0 else 0
 
-def pawn_attacks_span(pos, square):
+def pawn_attacks_span(pos, square = None):
     if square is None:
         return sum(pos, pawn_attacks_span)
     pos2 = colorflip(pos)
-    for y in range(square.y):
-        if board(pos, square.x - 1, y) == "p" and (y == square.y - 1 or (board(pos, square.x - 1, y + 1) != "P" and not backward(pos2, {x:square.x-1, y:7-y}))):
+    for y in range(square['y']):
+        if board(pos, square['x'] - 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] - 1, y + 1) != "P" and not backward(pos2, {x:square['x']-1, y:7-y}))):
             return 1
-        if board(pos, square.x + 1, y) == "p" and (y == square.y - 1 or (board(pos, square.x + 1, y + 1) != "P" and not backward(pos2, {x:square.x+1, y:7-y}))):
+        if board(pos, square['x'] + 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] + 1, y + 1) != "P" and not backward(pos2, {x:square['x']+1, y:7-y}))):
             return 1
     return 0
 
@@ -303,12 +305,12 @@ def pawn_attacks_span(pos, square):
 
 # BEGIN IMBALANCE
 
-def imbalance(pos, square):
+def imbalance(pos, square = None):
     if square is None:
         return sum(pos, imbalance)
     qo = [[0],[40,38],[32,255,-62],[0,104,4,0],[-26,-2,47,105,-208],[-189,24,117,133,-134,-6]]
     qt = [[0],[36,0],[9,63,0],[59,65,42,0],[46,39,24,-24,0],[97,100,-42,137,268,0]]
-    j = "XPNBRQxpnbrq".index(board(pos, square.x, square.y))
+    j = "XPNBRQxpnbrq".index(board(pos, square['x'], square['y']))
     if j < 0 or j > 5:
         return 0
     bishop = [0, 0]
@@ -334,14 +336,14 @@ def imbalance(pos, square):
         v += qo[j][0]
     return v
 
-def bishop_pair(pos, square):
+def bishop_pair(pos, square = None):
     if bishop_count(pos) < 2:
         return 0
     if square is None:
         return 1438
-    return 1 if board(pos, square.x, square.y) == "B" else 0
+    return 1 if board(pos, square['x'], square['y']) == "B" else 0
 
-def imbalance_total(pos, square):
+def imbalance_total(pos, square = None):
     v = 0
     v += imbalance(pos) - imbalance(colorflip(pos))
     v += bishop_pair(pos) - bishop_pair(colorflip(pos))
@@ -373,30 +375,30 @@ def pawnless_flank(pos):
         sum = pawns[5] + pawns[6] + pawns[7]
     return 1 if sum == 0 else 0
 
-def strength_square(pos, square):
+def strength_square(pos, square = None):
     if square == None:
         return sum(pos, strength_square)
     v = 5
-    kx = min(6, max(1, square.x))
+    kx = min(6, max(1, square['x']))
     weakness = [[-6,81,93,58,39,18,25],
                 [-43,61,35,-49,-29,-11,-63],
                 [-10,75,23,-2,32,3,-45],
                 [-39,-13,-29,-52,-48,-67,-166]]
     for x in range(kx - 1, kx + 2):
         us = 0
-        for y in range(7, square.y - 1, -1):
+        for y in range(7, square['y'] - 1, -1):
             if board(pos, x, y) == "p" and board(pos, x-1, y+1) != "P" and board(pos, x+1, y+1) != "P":
                 us = y
         f = min(x, 7 - x)
         v += weakness[f][us] if weakness[f][us] else 0
     return v
 
-def storm_square(pos, square, eg):
+def storm_square(pos, eg, square = None):
     if square == None:
         return sum(pos, storm_square)
     v = 0
     ev = 5
-    kx = min(6, max(1, square.x))
+    kx = min(6, max(1, square['x']))
     unblockedstorm = [[85,-289,-166,97,50,45,50],
                       [46,-25,122,45,37,-10,20],
                       [-6,51,168,34,-2,-22,-14],
@@ -406,7 +408,7 @@ def storm_square(pos, square, eg):
     for x in range(kx - 1, kx + 2):
         us = 0
         them = 0
-        for y in range(7, square.y - 1, -1):
+        for y in range(7, square['y'] - 1, -1):
             if board(pos, x, y) == "p" and board(pos, x-1, y+1) != "P" and board(pos, x+1, y+1) != "P":
                 us = y
             if board(pos, x, y) == "P":
@@ -419,7 +421,7 @@ def storm_square(pos, square, eg):
             v += unblockedstorm[f][them]
     return ev if eg else v
 
-def shelter_strength(pos, square):
+def shelter_strength(pos, square = None):
     w = 0
     s = 1024
     tx = None
@@ -434,14 +436,14 @@ def shelter_strength(pos, square):
                     tx = max(1, min(6, x))
     if square == None:
         return w
-    if tx != None and board(pos, square.x, square.y) == "p" and square.x >= tx-1 and square.x <= tx+1:
-        for y in range(square.y-1, -1, -1):
-            if board(pos, square.x, y) == "p":
+    if tx != None and board(pos, square['x'], square['y']) == "p" and square['x'] >= tx-1 and square['x'] <= tx+1:
+        for y in range(square['y']-1, -1, -1):
+            if board(pos, square['x'], y) == "p":
                 return 0
         return 1
     return 0
 
-def shelter_storm(pos, square):
+def shelter_storm(pos, square = None):
     w = 0
     s = 1024
     tx = None
@@ -463,7 +465,7 @@ def shelter_storm(pos, square):
         return 1
     return 0
 
-def king_pawn_distance(pos, square):
+def king_pawn_distance(pos, square = None):
     v = 6
     kx = 0
     ky = 0
@@ -485,10 +487,10 @@ def king_pawn_distance(pos, square):
         return v
     return 0
 
-def check(pos, square, type):
+def check(pos, type_piece, square = None):
     if square is None:
         return sum(pos, check)
-    if (rook_xray_attack(pos, square) and (type is None or type == 2 or type == 4)) or (queen_attack(pos, square) and (type is None or type == 3)):
+    if (rook_xray_attack(pos, square) and (type_piece is None or type_piece == 2 or type_piece == 4)) or (queen_attack(pos, square) and (type_piece is None or type_piece == 3)):
         for i in range(4):
             ix = -1 if i == 0 else 1 if i == 1 else 0
             iy = -1 if i == 2 else 1 if i == 3 else 0
@@ -498,7 +500,7 @@ def check(pos, square, type):
                     return 1
                 if b != "-" and b != "q":
                     break
-    if (bishop_xray_attack(pos, square) and (type is None or type == 1 or type == 4)) or (queen_attack(pos, square) and (type is None or type == 3)):
+    if (bishop_xray_attack(pos, square) and (type_piece is None or type_piece == 1 or type_piece == 4)) or (queen_attack(pos, square) and (type_piece is None or type_piece == 3)):
         for i in range(4):
             ix = (2 * (i > 1) - 1)
             iy = (2 * (i % 2 == 0) - 1)
@@ -508,7 +510,7 @@ def check(pos, square, type):
                     return 1
                 if b != "-" and b != "q":
                     break
-    if knight_attack(pos, square) and (type is None or type == 0 or type == 4):
+    if knight_attack(pos, square) and (type_piece is None or type_piece == 0 or type_piece == 4):
         if (board(pos, square["x"] + 2, square["y"] + 1) == "k" or
             board(pos, square["x"] + 2, square["y"] - 1) == "k" or
             board(pos, square["x"] + 1, square["y"] + 2) == "k" or
@@ -520,36 +522,36 @@ def check(pos, square, type):
             return 1
     return 0
 
-def safe_check(pos, square, type):
+def safe_check(pos, type_piece, square = None):
     if square is None:
-        return sum(pos, safe_check, type)
-    if board(pos, square.x, square.y) is None:
+        return sum(pos, safe_check, type_piece)
+    if board(pos, square['x'], square['y']) is None:
         return 0
-    if "PNBRQK".index(board(pos, square.x, square.y)) >= 0:
+    if "PNBRQK".index(board(pos, square['x'], square['y'])) >= 0:
         return 0
-    if not check(pos, square, type):
+    if not check(pos, square, type_piece):
         return 0
     pos2 = colorflip(pos)
-    if type == 3 and safe_check(pos, square, 2):
+    if type_piece == 3 and safe_check(pos, square, 2):
         return 0
-    if type == 1 and safe_check(pos, square, 3):
+    if type_piece == 1 and safe_check(pos, square, 3):
         return 0
-    if ((not attack(pos2, {"x": square.x, "y": 7 - square.y}) 
+    if ((not attack(pos2, {"x": square['x'], "y": 7 - square['y']}) 
         or (weak_squares(pos, square) and attack(pos, square) > 1))
-        and (type != 3 or not queen_attack(pos2, {"x": square.x, "y": 7 - square.y}))):
+        and (type_piece != 3 or not queen_attack(pos2, {"x": square['x'], "y": 7 - square['y']}))):
         return 1
     return 0
 
-def king_attackers_count(pos, square):
+def king_attackers_count(pos, square = None):
     if square is None:
         return sum(pos, king_attackers_count)
-    if board(pos, square.x, square.y) is None:
+    if board(pos, square['x'], square['y']) is None:
         return 0
-    if board(pos, square.x, square.y) == "P":
+    if board(pos, square['x'], square['y']) == "P":
         v = 0
         for dir in range(-1, 2, 2):
-            fr = board(pos, square.x + dir * 2, square.y) == "P"
-            if square.x + dir >= 0 and square.x + dir <= 7 and king_ring(pos, {"x": square.x + dir, "y": square.y - 1}, True):
+            fr = board(pos, square['x'] + dir * 2, square['y']) == "P"
+            if square['x'] + dir >= 0 and square['x'] + dir <= 7 and king_ring(pos, {"x": square['x'] + dir, "y": square['y'] - 1}, True):
                 v = v + (0.5 if fr else 1)
         return v
     for x in range(8):
@@ -563,19 +565,19 @@ def king_attackers_count(pos, square):
                     return 1
     return 0
 
-def king_attackers_weight(pos, square):
+def king_attackers_weight(pos, square = None):
     if square is None:
         return sum(pos, king_attackers_weight)
     if king_attackers_count(pos, square):
-        return [0, 81, 52, 44, 10]["PNBRQ".index(board(pos, square.x, square.y))]
+        return [0, 81, 52, 44, 10]["PNBRQ".index(board(pos, square['x'], square['y']))]
     return 0
 
-def king_attacks(pos, square):
+def king_attacks(pos, square = None):
     if square is None:
         return sum(pos, king_attacks)
-    if board(pos, square.x, square.y) is None:
+    if board(pos, square['x'], square['y']) is None:
         return 0
-    if "NBRQ".index(board(pos, square.x, square.y)) < 0:
+    if "NBRQ".index(board(pos, square['x'], square['y'])) < 0:
         return 0
     if king_attackers_count(pos, square) == 0:
         return 0
@@ -597,7 +599,7 @@ def king_attacks(pos, square):
                 v += queen_attack(pos, s2, square)
     return v
 
-def weak_bonus(pos, square):
+def weak_bonus(pos, square = None):
     if square is None:
         return sum(pos, weak_bonus)
     if not weak_squares(pos, square):
@@ -606,7 +608,7 @@ def weak_bonus(pos, square):
         return 0
     return 1
 
-def weak_squares(pos, square):
+def weak_squares(pos, square = None):
     if square is None:
         return sum(pos, weak_squares)
     if attack(pos, square):
@@ -620,7 +622,7 @@ def weak_squares(pos, square):
             return 1
     return 0
 
-def unsafe_checks(pos, square):
+def unsafe_checks(pos, square = None):
     if square is None:
         return sum(pos, unsafe_checks)
     if check(pos, square, 0) and safe_check(pos, None, 0) == 0:
@@ -631,14 +633,14 @@ def unsafe_checks(pos, square):
         return 1
     return 0
 
-def knight_defender(pos, square):
+def knight_defender(pos, square = None):
     if square is None:
         return sum(pos, knight_defender)
     if knight_attack(pos, square) and king_attack(pos, square):
         return 1
     return 0
 
-def endgame_shelter(pos, square):
+def endgame_shelter(pos, square = None):
     w = 0
     s = 1024
     tx = None
@@ -656,14 +658,14 @@ def endgame_shelter(pos, square):
         return e
     return 0
 
-def blockers_for_king(pos, square):
+def blockers_for_king(pos, square = None):
     if square is None:
         return sum(pos, blockers_for_king)
     if pinned_direction(colorflip(pos), {'x': square['x'], 'y': 7 - square['y']}):
         return 1
     return 0
 
-def flank_attack(pos, square):
+def flank_attack(pos, square = None):
     if square is None:
         return sum(pos, flank_attack)
     if square['y'] > 4:
@@ -686,7 +688,7 @@ def flank_attack(pos, square):
         return 0
     return 2 if a > 1 else 1
 
-def flank_defense(pos, square):
+def flank_defense(pos, square = None):
     if square is None:
         return sum(pos, flank_defense)
     if square['y'] > 4:
@@ -743,24 +745,25 @@ def king_eg(pos):
 
 # BEGIN MATERIAL
 
-def non_pawn_material(pos, square):
+def non_pawn_material(pos, square = None):
     if square is None:
         return sum(pos, non_pawn_material)
-    i = "NBRQ".index(board(pos, square.x, square.y))
+    i = "NBRQ".index(board(pos, square['x'], square['y']))
     if i >= 0:
-        return piece_value_bonus(pos, square, True)
+        return piece_value_bonus(pos, True, square)
     return 0
 
-def piece_value_bonus(pos, square, mg):
+def piece_value_bonus(pos, mg, square = None):
     if square is None:
         return sum(pos, piece_value_bonus)
     a = [124, 781, 825, 1276, 2538] if mg else [206, 854, 915, 1380, 2682]
-    i = "PNBRQ".index(board(pos, square.x, square.y))
+    print(board(pos, square['x'], square['y']))
+    i = "PNBRQ".index(board(pos, square['x'], square['y']).upper())
     if i >= 0:
         return a[i]
     return 0
 
-def psqt_bonus(pos, square, mg):
+def psqt_bonus(pos, mg, square = None):
     if square is None:
         return sum(pos, psqt_bonus, mg)
     bonus = [
@@ -783,30 +786,30 @@ def psqt_bonus(pos, square, mg):
         [0,0,0,0,0,0,0,0],[-10,-6,10,0,14,7,-5,-19],[-10,-10,-10,4,4,3,-6,-4],[6,-2,-8,-4,-13,-12,-10,-9],[10,5,4,-5,-5,-5,14,9],
         [28,20,21,28,30,7,6,13],[0,-11,12,21,25,19,4,7],[0,0,0,0,0,0,0,0]
     ]
-    i = "PNBRQK".index(board(pos, square.x, square.y))
+    i = "PNBRQK".index(board(pos, square['x'], square['y']))
     if i < 0:
         return 0
     if i == 0:
-        return pbonus[7 - square.y][square.x]
+        return pbonus[7 - square['y']][square['x']]
     else:
-        return bonus[i-1][7 - square.y][min(square.x, 7 - square.x)]
+        return bonus[i-1][7 - square['y']][min(square['x'], 7 - square['x'])]
 
-def piece_value_mg(pos, square):
+def piece_value_mg(pos, square = None):
     if square is None:
         return sum(pos, piece_value_mg)
-    return piece_value_bonus(pos, square, True)
+    return piece_value_bonus(pos, True, square)
 
-def piece_value_eg(pos, square):
+def piece_value_eg(pos, square = None):
     if square is None:
         return sum(pos, piece_value_eg)
-    return piece_value_bonus(pos, square, False)
+    return piece_value_bonus(pos, False, square)
 
-def psqt_mg(pos, square):
+def psqt_mg(pos, square = None):
     if square is None:
         return sum(pos, psqt_mg)
     return psqt_bonus(pos, square, True)
 
-def psqt_eg(pos, square):
+def psqt_eg(pos, square = None):
     if square is None:
         return sum(pos, psqt_eg)
     return psqt_bonus(pos, square, False)
@@ -816,11 +819,11 @@ def psqt_eg(pos, square):
 
 # BEGIN MOBILITY
 
-def mobility(pos, square):
+def mobility(pos, square = None):
     if square is None:
         return sum(pos, mobility)
     v = 0
-    b = board(pos, square.x, square.y)
+    b = board(pos, square['x'], square['y'])
     if b not in "NBRQ":
         return 0
     for x in range(8):
@@ -838,24 +841,24 @@ def mobility(pos, square):
                 v += 1
     return v
 
-def mobility_area(pos, square):
+def mobility_area(pos, square = None):
     if square is None:
         return sum(pos, mobility_area)
-    if board(pos, square.x, square.y) == "K":
+    if board(pos, square['x'], square['y']) == "K":
         return 0
-    if board(pos, square.x, square.y) == "Q":
+    if board(pos, square['x'], square['y']) == "Q":
         return 0
-    if board(pos, square.x - 1, square.y - 1) == "p":
+    if board(pos, square['x'] - 1, square['y'] - 1) == "p":
         return 0
-    if board(pos, square.x + 1, square.y - 1) == "p":
+    if board(pos, square['x'] + 1, square['y'] - 1) == "p":
         return 0
-    if board(pos, square.x, square.y) == "P" and (rank(pos, square) < 4 or board(pos, square.x, square.y - 1) != "-"):
+    if board(pos, square['x'], square['y']) == "P" and (rank(pos, square) < 4 or board(pos, square['x'], square['y'] - 1) != "-"):
         return 0
-    if blockers_for_king(colorflip(pos), {"x": square.x, "y": 7 - square.y}):
+    if blockers_for_king(colorflip(pos), {"x": square['x'], "y": 7 - square['y']}):
         return 0
     return 1
 
-def mobility_bonus(pos, square, mg):
+def mobility_bonus(pos, mg, square = None):
     if square is None:
         return sum(pos, mobility_bonus, mg)
     bonus = [[-62,-53,-12,-4,3,13,22,28,33],
@@ -865,17 +868,17 @@ def mobility_bonus(pos, square, mg):
                                                                                                                                  [-59,-23,-3,13,24,42,54,57,65,73,78,86,88,97],
                                                                                                                                  [-78,-17,23,39,70,99,103,121,134,139,158,164,168,169,172],
                                                                                                                                  [-48,-30,-7,19,40,55,59,75,78,96,96,100,121,127,131,133,136,141,147,150,151,168,168,171,182,182,192,219]]
-    i = "NBRQ".index(board(pos, square.x, square.y))
+    i = "NBRQ".index(board(pos, square['x'], square['y']))
     if i < 0:
         return 0
     return bonus[i][mobility(pos, square)]
 
-def mobility_mg(pos, square):
+def mobility_mg(pos, square = None):
     if square is None:
         return sum(pos, mobility_mg)
     return mobility_bonus(pos, square, True)
 
-def mobility_eg(pos, square):
+def mobility_eg(pos, square = None):
     if square is None:
         return sum(pos, mobility_eg)
     return mobility_bonus(pos, square, False)
@@ -884,35 +887,35 @@ def mobility_eg(pos, square):
 
 # BEGIN PASSED PAWNS
 
-def candidate_passed(pos, square):
+def candidate_passed(pos, square = None):
     if square is None:
         return sum(pos, candidate_passed)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
     ty1 = 8
     ty2 = 8
     oy = 8
-    for y in range(square.y - 1, -1, -1):
-        if board(pos, square.x, y) == "P":
+    for y in range(square['y'] - 1, -1, -1):
+        if board(pos, square['x'], y) == "P":
             return 0
-        if board(pos, square.x, y) == "p":
+        if board(pos, square['x'], y) == "p":
             ty1 = y
-        if board(pos, square.x - 1, y) == "p" or board(pos, square.x + 1, y) == "p":
+        if board(pos, square['x'] - 1, y) == "p" or board(pos, square['x'] + 1, y) == "p":
             ty2 = y
-    if ty1 == 8 and ty2 >= square.y - 1:
+    if ty1 == 8 and ty2 >= square['y'] - 1:
         return 1
-    if ty2 < square.y - 2 or ty1 < square.y - 1:
+    if ty2 < square['y'] - 2 or ty1 < square['y'] - 1:
         return 0
-    if ty2 >= square.y and ty1 == square.y - 1 and square.y < 4:
-        if board(pos, square.x - 1, square.y + 1) == "P" and board(pos, square.x - 1, square.y) != "p" and board(pos, square.x - 2, square.y - 1) != "p":
+    if ty2 >= square['y'] and ty1 == square['y'] - 1 and square['y'] < 4:
+        if board(pos, square['x'] - 1, square['y'] + 1) == "P" and board(pos, square['x'] - 1, square['y']) != "p" and board(pos, square['x'] - 2, square['y'] - 1) != "p":
             return 1
-        if board(pos, square.x + 1, square.y + 1) == "P" and board(pos, square.x + 1, square.y) != "p" and board(pos, square.x + 2, square.y - 1) != "p":
+        if board(pos, square['x'] + 1, square['y'] + 1) == "P" and board(pos, square['x'] + 1, square['y']) != "p" and board(pos, square['x'] + 2, square['y'] - 1) != "p":
             return 1
-    if board(pos, square.x, square.y - 1) == "p":
+    if board(pos, square['x'], square['y'] - 1) == "p":
         return 0
-    lever = (1 if board(pos, square.x - 1, square.y - 1) == "p" else 0) + (1 if board(pos, square.x + 1, square.y - 1) == "p" else 0)
-    leverpush = (1 if board(pos, square.x - 1, square.y - 2) == "p" else 0) + (1 if board(pos, square.x + 1, square.y - 2) == "p" else 0)
-    phalanx = (1 if board(pos, square.x - 1, square.y) == "P" else 0) + (1 if board(pos, square.x + 1, square.y) == "P" else 0)
+    lever = (1 if board(pos, square['x'] - 1, square['y'] - 1) == "p" else 0) + (1 if board(pos, square['x'] + 1, square['y'] - 1) == "p" else 0)
+    leverpush = (1 if board(pos, square['x'] - 1, square['y'] - 2) == "p" else 0) + (1 if board(pos, square['x'] + 1, square['y'] - 2) == "p" else 0)
+    phalanx = (1 if board(pos, square['x'] - 1, square['y']) == "P" else 0) + (1 if board(pos, square['x'] + 1, square['y']) == "P" else 0)
     if lever - supported(pos, square) > 1:
         return 0
     if leverpush - phalanx > 0:
@@ -921,7 +924,7 @@ def candidate_passed(pos, square):
         return 0
     return 1
 
-def king_proximity(pos, square):
+def king_proximity(pos, square = None):
     if square is None:
         return sum(pos, king_proximity)
     if not passed_leverable(pos, square):
@@ -934,21 +937,21 @@ def king_proximity(pos, square):
     for x in range(8):
         for y in range(8):
             if board(pos, x, y) == "k":
-                v += (min(max(abs(y - square.y + 1), abs(x - square.x)), 5) * 19 / 4) << 0 * w
+                v += (min(max(abs(y - square['y'] + 1), abs(x - square['x'])), 5) * 19 / 4) << 0 * w
             if board(pos, x, y) == "K":
-                v -= min(max(abs(y - square.y + 1), abs(x - square.x)), 5) * 2 * w
-                if square.y > 1:
-                    v -= min(max(abs(y - square.y + 2), abs(x - square.x)), 5) * w
+                v -= min(max(abs(y - square['y'] + 1), abs(x - square['x'])), 5) * 2 * w
+                if square['y'] > 1:
+                    v -= min(max(abs(y - square['y'] + 2), abs(x - square['x'])), 5) * w
     return v
 
-def passed_block(pos, square):
+def passed_block(pos, square = None):
     if square is None:
         return sum(pos, passed_block)
     if not passed_leverable(pos, square):
         return 0
     if rank(pos, square) < 4:
         return 0
-    if board(pos, square.x, square.y - 1) != "-":
+    if board(pos, square['x'], square['y'] - 1) != "-":
         return 0
     r = rank(pos, square) - 1
     w = 5 * r - 13 if r > 2 else 0
@@ -958,27 +961,27 @@ def passed_block(pos, square):
     wunsafe = 0
     defended1 = 0
     unsafe1 = 0
-    for y in range(square.y - 1, -1, -1):
-        if attack(pos, {x: square.x, y: y}):
+    for y in range(square['y'] - 1, -1, -1):
+        if attack(pos, {x: square['x'], y: y}):
             defended += 1
-        if attack(pos2, {x: square.x, y: 7 - y}):
+        if attack(pos2, {x: square['x'], y: 7 - y}):
             unsafe += 1
-        if attack(pos2, {x: square.x - 1, y: 7 - y}):
+        if attack(pos2, {x: square['x'] - 1, y: 7 - y}):
             wunsafe += 1
-        if attack(pos2, {x: square.x + 1, y: 7 - y}):
+        if attack(pos2, {x: square['x'] + 1, y: 7 - y}):
             wunsafe += 1
-        if y == square.y - 1:
+        if y == square['y'] - 1:
             defended1 = defended
             unsafe1 = unsafe
-    for y in range(square.y + 1, 8):
-        if board(pos, square.x, y) == "R" or board(pos, square.x, y) == "Q":
-            defended1 = defended = square.y
-        if board(pos, square.x, y) == "r" or board(pos, square.x, y) == "q":
-            unsafe1 = unsafe = square.y
+    for y in range(square['y'] + 1, 8):
+        if board(pos, square['x'], y) == "R" or board(pos, square['x'], y) == "Q":
+            defended1 = defended = square['y']
+        if board(pos, square['x'], y) == "r" or board(pos, square['x'], y) == "q":
+            unsafe1 = unsafe = square['y']
     k = (35 if unsafe == 0 and wunsafe == 0 else 20 if unsafe == 0 else 9 if unsafe1 == 0 else 0) + (5 if defended1 != 0 else 0)
     return k * w
 
-def passed_file(pos, square):
+def passed_file(pos, square = None):
     if square is None:
         return sum(pos, passed_file)
     if not passed_leverable(pos, square):
@@ -986,33 +989,33 @@ def passed_file(pos, square):
     file = file(pos, square)
     return min(file - 1, 8 - file)
 
-def passed_rank(pos, square):
+def passed_rank(pos, square = None):
     if square is None:
         return sum(pos, passed_rank)
     if not passed_leverable(pos, square):
         return 0
     return rank(pos, square) - 1
 
-def passed_leverable(pos, square):
+def passed_leverable(pos, square = None):
     if square is None:
         return sum(pos, passed_leverable)
     if not candidate_passed(pos, square):
         return 0
-    if board(pos, square.x, square.y - 1) != "p":
+    if board(pos, square['x'], square['y'] - 1) != "p":
         return 1
     pos2 = colorflip(pos)
     for i in range(-1, 2, 2):
-        s1 = {"x": square.x + i, "y": square.y}
-        s2 = {"x": square.x + i, "y": 7 - square.y}
+        s1 = {"x": square['x'] + i, "y": square['y']}
+        s2 = {"x": square['x'] + i, "y": 7 - square['y']}
         if (
-            board(pos, square.x + i, square.y + 1) == "P"
-            and "pnbrqk".index(board(pos, square.x + i, square.y)) < 0
+            board(pos, square['x'] + i, square['y'] + 1) == "P"
+            and "pnbrqk".index(board(pos, square['x'] + i, square['y'])) < 0
             and (attack(pos, s1) > 0 or attack(pos2, s2) <= 1)
         ):
             return 1
     return 0
 
-def passed_mg(pos, square):
+def passed_mg(pos, square = None):
     if square is None:
         return sum(pos, passed_mg)
     if not passed_leverable(pos, square):
@@ -1023,7 +1026,7 @@ def passed_mg(pos, square):
     v -= 11 * passed_file(pos, square)
     return v
 
-def passed_eg(pos, square):
+def passed_eg(pos, square = None):
     if square is None:
         return sum(pos, passed_eg)
     if not passed_leverable(pos, square):
@@ -1040,79 +1043,79 @@ def passed_eg(pos, square):
 
 # BEGIN PAWNS
 
-def isolated(pos, square):
+def isolated(pos, square = None):
     if square is None:
         return sum(pos, isolated)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
     for y in range(8):
-        if board(pos, square.x - 1, y) == "P":
+        if board(pos, square['x'] - 1, y) == "P":
             return 0
-        if board(pos, square.x + 1, y) == "P":
+        if board(pos, square['x'] + 1, y) == "P":
             return 0
     return 1
 
-def opposed(pos, square):
+def opposed(pos, square = None):
     if square is None:
         return sum(pos, opposed)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    for y in range(square.y):
-        if board(pos, square.x, y) == "p":
+    for y in range(square['y']):
+        if board(pos, square['x'], y) == "p":
             return 1
     return 0
 
-def phalanx(pos, square):
+def phalanx(pos, square = None):
     if square is None:
         return sum(pos, phalanx)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    if board(pos, square.x - 1, square.y) == "P":
+    if board(pos, square['x'] - 1, square['y']) == "P":
         return 1
-    if board(pos, square.x + 1, square.y) == "P":
+    if board(pos, square['x'] + 1, square['y']) == "P":
         return 1
     return 0
 
-def supported(pos, square):
+def supported(pos, square = None):
     if square is None:
         return sum(pos, supported)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    return (1 if board(pos, square.x - 1, square.y + 1) == "P" else 0) + (1 if board(pos, square.x + 1, square.y + 1) == "P" else 0)
+    return (1 if board(pos, square['x'] - 1, square['y'] + 1) == "P" else 0) + (1 if board(pos, square['x'] + 1, square['y'] + 1) == "P" else 0)
 
-def backward(pos, square):
+def backward(pos, square = None):
     if square is None:
         return sum(pos, backward)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    for y in range(square.y, 8):
-        if board(pos, square.x - 1, y) == "P" or board(pos, square.x + 1, y) == "P":
+    for y in range(square['y'], 8):
+        if board(pos, square['x'] - 1, y) == "P" or board(pos, square['x'] + 1, y) == "P":
             return 0
-    if board(pos, square.x - 1, square.y - 2) == "p" or board(pos, square.x + 1, square.y - 2) == "p" or board(pos, square.x, square.y - 1) == "p":
+    if board(pos, square['x'] - 1, square['y'] - 2) == "p" or board(pos, square['x'] + 1, square['y'] - 2) == "p" or board(pos, square['x'], square['y'] - 1) == "p":
         return 1
     return 0
 
-def doubled(pos, square):
+def doubled(pos, square = None):
     if square is None:
         return sum(pos, doubled)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    if board(pos, square.x, square.y + 1) != "P":
+    if board(pos, square['x'], square['y'] + 1) != "P":
         return 0
-    if board(pos, square.x - 1, square.y + 1) == "P":
+    if board(pos, square['x'] - 1, square['y'] + 1) == "P":
         return 0
-    if board(pos, square.x + 1, square.y + 1) == "P":
+    if board(pos, square['x'] + 1, square['y'] + 1) == "P":
         return 0
     return 1
 
-def connected(pos, square):
+def connected(pos, square = None):
     if square is None:
         return sum(pos, connected)
     if supported(pos, square) or phalanx(pos, square):
         return 1
     return 0
 
-def connected_bonus(pos, square):
+def connected_bonus(pos, square = None):
     if square is None:
         return sum(pos, connected_bonus)
     if not connected(pos, square):
@@ -1121,13 +1124,13 @@ def connected_bonus(pos, square):
     op = opposed(pos, square)
     ph = phalanx(pos, square)
     su = supported(pos, square)
-    bl = 1 if board(pos, square.x, square.y - 1) == "p" else 0
+    bl = 1 if board(pos, square['x'], square['y'] - 1) == "p" else 0
     r = rank(pos, square)
     if r < 2 or r > 7:
         return 0
     return seed[r - 1] * (2 + ph - op) + 21 * su
 
-def weak_unopposed_pawn(pos, square):
+def weak_unopposed_pawn(pos, square = None):
     if square is None:
         return sum(pos, weak_unopposed_pawn)
     if opposed(pos, square):
@@ -1139,53 +1142,53 @@ def weak_unopposed_pawn(pos, square):
         v += 1
     return v
 
-def weak_lever(pos, square):
+def weak_lever(pos, square = None):
     if square is None:
         return sum(pos, weak_lever)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    if board(pos, square.x - 1, square.y - 1) != "p":
+    if board(pos, square['x'] - 1, square['y'] - 1) != "p":
         return 0
-    if board(pos, square.x + 1, square.y - 1) != "p":
+    if board(pos, square['x'] + 1, square['y'] - 1) != "p":
         return 0
-    if board(pos, square.x - 1, square.y + 1) == "P":
+    if board(pos, square['x'] - 1, square['y'] + 1) == "P":
         return 0
-    if board(pos, square.x + 1, square.y + 1) == "P":
+    if board(pos, square['x'] + 1, square['y'] + 1) == "P":
         return 0
     return 1
 
-def blocked(pos, square):
+def blocked(pos, square = None):
     if square is None:
         return sum(pos, blocked)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
-    if square.y != 2 and square.y != 3:
+    if square['y'] != 2 and square['y'] != 3:
         return 0
-    if board(pos, square.x, square.y - 1) != "p":
+    if board(pos, square['x'], square['y'] - 1) != "p":
         return 0
-    return 4 - square.y
+    return 4 - square['y']
 
-def doubled_isolated(pos, square):
+def doubled_isolated(pos, square = None):
     if square is None:
         return sum(pos, doubled_isolated)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
     if isolated(pos, square):
         obe = 0
         eop = 0
         ene = 0
         for y in range(8):
-            if y > square.y and board(pos, square.x, y) == "P":
+            if y > square['y'] and board(pos, square['x'], y) == "P":
                 obe += 1
-            if y < square.y and board(pos, square.x, y) == "p":
+            if y < square['y'] and board(pos, square['x'], y) == "p":
                 eop += 1
-            if board(pos, square.x - 1, y) == "p" or board(pos, square.x + 1, y) == "p":
+            if board(pos, square['x'] - 1, y) == "p" or board(pos, square['x'] + 1, y) == "p":
                 ene += 1
         if obe > 0 and ene == 0 and eop > 0:
             return 1
     return 0
 
-def pawns_mg(pos, square):
+def pawns_mg(pos, square = None):
     if square is None:
         return sum(pos, pawns_mg)
     v = 0
@@ -1201,7 +1204,7 @@ def pawns_mg(pos, square):
     v += [0, -11, -3][blocked(pos, square)]
     return v
 
-def pawns_eg(pos, square):
+def pawns_eg(pos, square = None):
     if square is None:
         return sum(pos, pawns_eg)
     v = 0
@@ -1222,54 +1225,54 @@ def pawns_eg(pos, square):
 
 # BEGIN PIECES
 
-def outpost(pos, square):
+def outpost(pos, square = None):
     if square is None:
         return sum(pos, outpost)
-    if board(pos, square.x, square.y) != "N" and board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "N" and board(pos, square['x'], square['y']) != "B":
         return 0
     if not outpost_square(pos, square):
         return 0
     return 1
 
-def outpost_square(pos, square):
+def outpost_square(pos, square = None):
     if square is None:
         return sum(pos, outpost_square)
     if rank(pos, square) < 4 or rank(pos, square) > 6:
         return 0
-    if board(pos, square.x - 1, square.y + 1) != "P" and board(pos, square.x + 1, square.y + 1) != "P":
+    if board(pos, square['x'] - 1, square['y'] + 1) != "P" and board(pos, square['x'] + 1, square['y'] + 1) != "P":
         return 0
     if pawn_attacks_span(pos, square):
         return 0
     return 1
 
-def reachable_outpost(pos, square):
+def reachable_outpost(pos, square = None):
     if square is None:
         return sum(pos, reachable_outpost)
-    if board(pos, square.x, square.y) != "B" and board(pos, square.x, square.y) != "N":
+    if board(pos, square['x'], square['y']) != "B" and board(pos, square['x'], square['y']) != "N":
         return 0
     v = 0
     for x in range(8):
         for y in range(2, 5):
-            if (board(pos, square.x, square.y) == "N" and "PNBRQK".index(board(pos, x, y)) < 0 and knight_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})) or (board(pos, square.x, square.y) == "B" and "PNBRQK".index(board(pos, x, y)) < 0 and bishop_xray_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})):
+            if (board(pos, square['x'], square['y']) == "N" and "PNBRQK".index(board(pos, x, y)) < 0 and knight_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})) or (board(pos, square['x'], square['y']) == "B" and "PNBRQK".index(board(pos, x, y)) < 0 and bishop_xray_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})):
                 support = 2 if board(pos, x - 1, y + 1) == "P" or board(pos, x + 1, y + 1) == "P" else 1
                 v = max(v, support)
     return v
 
-def minor_behind_pawn(pos, square):
+def minor_behind_pawn(pos, square = None):
     if square is None:
         return sum(pos, minor_behind_pawn)
-    if board(pos, square.x, square.y) != "B" and board(pos, square.x, square.y) != "N":
+    if board(pos, square['x'], square['y']) != "B" and board(pos, square['x'], square['y']) != "N":
         return 0
-    if board(pos, square.x, square.y - 1).upper() != "P":
+    if board(pos, square['x'], square['y'] - 1).upper() != "P":
         return 0
     return 1
 
-def bishop_pawns(pos, square):
+def bishop_pawns(pos, square = None):
     if square is None:
         return sum(pos, bishop_pawns)
-    if board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "B":
         return 0
-    c = (square.x + square.y) % 2
+    c = (square['x'] + square['y']) % 2
     v = 0
     blocked = 0
     for x in range(8):
@@ -1280,23 +1283,23 @@ def bishop_pawns(pos, square):
                 blocked += 1
     return v * (blocked + (0 if pawn_attack(pos, square) > 0 else 1))
 
-def rook_on_file(pos, square):
+def rook_on_file(pos, square = None):
     if square is None:
         return sum(pos, rook_on_file)
-    if board(pos, square.x, square.y) != "R":
+    if board(pos, square['x'], square['y']) != "R":
         return 0
     open = 1
     for y in range(8):
-        if board(pos, square.x, y) == "P":
+        if board(pos, square['x'], y) == "P":
             return 0
-        if board(pos, square.x, y) == "p":
+        if board(pos, square['x'], y) == "p":
             open = 0
     return open + 1
 
-def trapped_rook(pos, square):
+def trapped_rook(pos, square = None):
     if square is None:
         return sum(pos, trapped_rook)
-    if board(pos, square.x, square.y) != "R":
+    if board(pos, square['x'], square['y']) != "R":
         return 0
     if rook_on_file(pos, square):
         return 0
@@ -1309,21 +1312,21 @@ def trapped_rook(pos, square):
             if board(pos, x, y) == "K":
                 kx = x
                 ky = y
-    if (kx < 4) != (square.x < kx):
+    if (kx < 4) != (square['x'] < kx):
         return 0
     return 1
 
-def weak_queen(pos, square):
+def weak_queen(pos, square = None):
     if square is None:
         return sum(pos, weak_queen)
-    if board(pos, square.x, square.y) != "Q":
+    if board(pos, square['x'], square['y']) != "Q":
         return 0
     for i in range(8):
         ix = (i + (i > 3)) % 3 - 1
         iy = (((i + (i > 3)) / 3) << 0) - 1
         count = 0
         for d in range(1, 8):
-            b = board(pos, square.x + d * ix, square.y + d * iy)
+            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
             if b == "r" and (ix == 0 or iy == 0) and count == 1:
                 return 1
             if b == "b" and (ix != 0 and iy != 0) and count == 1:
@@ -1332,22 +1335,22 @@ def weak_queen(pos, square):
                 count += 1
     return 0
 
-def king_protector(pos, square):
+def king_protector(pos, square = None):
     if square is None:
         return sum(pos, king_protector)
-    if board(pos, square.x, square.y) != "N" and board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "N" and board(pos, square['x'], square['y']) != "B":
         return 0
     return king_distance(pos, square)
 
-def long_diagonal_bishop(pos, square):
+def long_diagonal_bishop(pos, square = None):
     if square is None:
         return sum(pos, long_diagonal_bishop)
-    if board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "B":
         return 0
-    if square.x - square.y != 0 and square.x - (7 - square.y) != 0:
+    if square['x'] - square['y'] != 0 and square['x'] - (7 - square['y']) != 0:
         return 0
-    x1 = square.x
-    y1 = square.y
+    x1 = square['x']
+    y1 = square['y']
     if min(x1, 7 - x1) > 2:
         return 0
     for i in range(min(x1, 7 - x1), 4):
@@ -1365,12 +1368,12 @@ def long_diagonal_bishop(pos, square):
             y1 -= 1
     return 1
 
-def outpost_total(pos, square):
+def outpost_total(pos, square = None):
     if square is None:
         return sum(pos, outpost_total)
-    if board(pos, square.x, square.y) != "N" and board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "N" and board(pos, square['x'], square['y']) != "B":
         return 0
-    knight = board(pos, square.x, square.y) == "N"
+    knight = board(pos, square['x'], square['y']) == "N"
     reachable = 0
     if not outpost(pos, square):
         if not knight:
@@ -1379,57 +1382,57 @@ def outpost_total(pos, square):
         if not reachable:
             return 0
         return 1
-    if knight and (square.x < 2 or square.x > 5):
+    if knight and (square['x'] < 2 or square['x'] > 5):
         ea = 0
         cnt = 0
         for x in range(8):
             for y in range(8):
-                if (abs(square.x - x) == 2 and abs(square.y - y) == 1 or abs(square.x - x) == 1 and abs(square.y - y) == 2) and "nbrqk".index(board(pos, x, y)) >= 0:
+                if (abs(square['x'] - x) == 2 and abs(square['y'] - y) == 1 or abs(square['x'] - x) == 1 and abs(square['y'] - y) == 2) and "nbrqk".index(board(pos, x, y)) >= 0:
                     ea = 1
-                if (x < 4 and square.x < 4 or x >= 4 and square.x >= 4) and "nbrqk".index(board(pos, x, y)) >= 0:
+                if (x < 4 and square['x'] < 4 or x >= 4 and square['x'] >= 4) and "nbrqk".index(board(pos, x, y)) >= 0:
                     cnt += 1
         if not ea and cnt <= 1:
             return 2
     return 4 if knight else 3
 
-def rook_on_queen_file(pos, square):
+def rook_on_queen_file(pos, square = None):
     if square is None:
         return sum(pos, rook_on_queen_file)
-    if board(pos, square.x, square.y) != "R":
+    if board(pos, square['x'], square['y']) != "R":
         return 0
     for y in range(8):
-        if board(pos, square.x, y).upper() == "Q":
+        if board(pos, square['x'], y).upper() == "Q":
             return 1
     return 0
 
-def bishop_xray_pawns(pos, square):
+def bishop_xray_pawns(pos, square = None):
     if square is None:
         return sum(pos, bishop_xray_pawns)
-    if board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "B":
         return 0
     count = 0
     for x in range(8):
         for y in range(8):
-            if board(pos, x, y) == "p" and abs(square.x - x) == abs(square.y - y):
+            if board(pos, x, y) == "p" and abs(square['x'] - x) == abs(square['y'] - y):
                 count += 1
     return count
 
-def rook_on_king_ring(pos, square):
+def rook_on_king_ring(pos, square = None):
     if square is None:
         return sum(pos, rook_on_king_ring)
-    if board(pos, square.x, square.y) != "R":
+    if board(pos, square['x'], square['y']) != "R":
         return 0
     if king_attackers_count(pos, square) > 0:
         return 0
     for y in range(8):
-        if king_ring(pos, {"x": square.x, "y": y}):
+        if king_ring(pos, {"x": square['x'], "y": y}):
             return 1
     return 0
 
-def bishop_on_king_ring(pos, square):
+def bishop_on_king_ring(pos, square = None):
     if square is None:
         return sum(pos, bishop_on_king_ring)
-    if board(pos, square.x, square.y) != "B":
+    if board(pos, square['x'], square['y']) != "B":
         return 0
     if king_attackers_count(pos, square) > 0:
         return 0
@@ -1437,8 +1440,8 @@ def bishop_on_king_ring(pos, square):
         ix = ((i > 1) * 2 - 1)
         iy = ((i % 2 == 0) * 2 - 1)
         for d in range(1, 8):
-            x = square.x + d * ix
-            y = square.y + d * iy
+            x = square['x'] + d * ix
+            y = square['y'] + d * iy
             if board(pos, x, y) == "x":
                 break
             if king_ring(pos, {"x": x, "y": y}):
@@ -1447,25 +1450,25 @@ def bishop_on_king_ring(pos, square):
                 break
     return 0
 
-def queen_infiltration(pos, square):
+def queen_infiltration(pos, square = None):
     if square is None:
         return sum(pos, queen_infiltration)
-    if board(pos, square.x, square.y) != "Q":
+    if board(pos, square['x'], square['y']) != "Q":
         return 0
-    if square.y > 3:
+    if square['y'] > 3:
         return 0
-    if board(pos, square.x + 1, square.y - 1) == "p":
+    if board(pos, square['x'] + 1, square['y'] - 1) == "p":
         return 0
-    if board(pos, square.x - 1, square.y - 1) == "p":
+    if board(pos, square['x'] - 1, square['y'] - 1) == "p":
         return 0
     if pawn_attacks_span(pos, square):
         return 0
     return 1
 
-def pieces_mg(pos, square):
+def pieces_mg(pos, square = None):
     if square is None:
         return sum(pos, pieces_mg)
-    if board(pos, square.x, square.y) not in "NBRQ":
+    if board(pos, square['x'], square['y']) not in "NBRQ":
         return 0
     v = 0
     v += [0,31,-7,30,56][outpost_total(pos, square)]
@@ -1479,14 +1482,14 @@ def pieces_mg(pos, square):
     v -= trapped_rook(pos, square) * 55 * (1 if pos.c[0] or pos.c[1] else 2)
     v -= 56 * weak_queen(pos, square)
     v -= 2 * queen_infiltration(pos, square)
-    v -= (8 if board(pos, square.x, square.y) == "N" else 6) * king_protector(pos, square)
+    v -= (8 if board(pos, square['x'], square['y']) == "N" else 6) * king_protector(pos, square)
     v += 45 * long_diagonal_bishop(pos, square)
     return v
 
-def pieces_eg(pos, square):
+def pieces_eg(pos, square = None):
     if square is None:
         return sum(pos, pieces_eg)
-    if board(pos, square.x, square.y) not in "NBRQ":
+    if board(pos, square['x'], square['y']) not in "NBRQ":
         return 0
     v = 0
     v += [0,22,36,23,36][outpost_total(pos, square)]
@@ -1505,19 +1508,19 @@ def pieces_eg(pos, square):
 
 # BEGIN SPACE
 
-def space_area(pos, square):
+def space_area(pos, square = None):
     if square is None:
         return sum(pos, space_area)
     v = 0
     rank = rank(pos, square)
     file = file(pos, square)
-    if (rank >= 2 and rank <= 4 and file >= 3 and file <= 6) and (board(pos, square.x ,square.y) != "P") and (board(pos, square.x - 1 ,square.y - 1) != "p") and (board(pos, square.x + 1 ,square.y - 1) != "p"):
+    if (rank >= 2 and rank <= 4 and file >= 3 and file <= 6) and (board(pos, square['x'] ,square['y']) != "P") and (board(pos, square['x'] - 1 ,square['y'] - 1) != "p") and (board(pos, square['x'] + 1 ,square['y'] - 1) != "p"):
         v += 1
-        if (board(pos, square.x, square.y - 1) == "P" or board(pos, square.x, square.y - 2) == "P" or board(pos, square.x, square.y - 3) == "P") and not attack(colorflip(pos), {"x":square.x, "y":7-square.y}):
+        if (board(pos, square['x'], square['y'] - 1) == "P" or board(pos, square['x'], square['y'] - 2) == "P" or board(pos, square['x'], square['y'] - 3) == "P") and not attack(colorflip(pos), {"x":square['x'], "y":7-square['y']}):
             v += 1
     return v
 
-def space(pos, square):
+def space(pos, square = None):
     if non_pawn_material(pos) + non_pawn_material(colorflip(pos)) < 12222:
         return 0
     pieceCount = 0
@@ -1537,72 +1540,72 @@ def space(pos, square):
 
 # BEGIN THREATS
 
-def safe_pawn(pos, square):
+def safe_pawn(pos, square = None):
     if square is None:
         return sum(pos, safe_pawn)
-    if board(pos, square.x, square.y) != "P":
+    if board(pos, square['x'], square['y']) != "P":
         return 0
     if attack(pos, square):
         return 1
-    if not attack(colorflip(pos), {"x": square.x, "y": 7 - square.y}):
+    if not attack(colorflip(pos), {"x": square['x'], "y": 7 - square['y']}):
         return 1
     return 0
 
-def threat_safe_pawn(pos, square):
+def threat_safe_pawn(pos, square = None):
     if square is None:
         return sum(pos, threat_safe_pawn)
-    if board(pos, square.x, square.y) not in "nbrq":
+    if board(pos, square['x'], square['y']) not in "nbrq":
         return 0
     if not pawn_attack(pos, square):
         return 0
-    if safe_pawn(pos, {"x": square.x - 1, "y": square.y + 1}) or safe_pawn(pos, {"x": square.x + 1, "y": square.y + 1}):
+    if safe_pawn(pos, {"x": square['x'] - 1, "y": square['y'] + 1}) or safe_pawn(pos, {"x": square['x'] + 1, "y": square['y'] + 1}):
         return 1
     return 0
 
-def weak_enemies(pos, square):
+def weak_enemies(pos, square = None):
     if square is None:
         return sum(pos, weak_enemies)
-    if board(pos, square.x, square.y) not in "pnbrqk":
+    if board(pos, square['x'], square['y']) not in "pnbrqk":
         return 0
-    if board(pos, square.x - 1, square.y - 1) == "p":
+    if board(pos, square['x'] - 1, square['y'] - 1) == "p":
         return 0
-    if board(pos, square.x + 1, square.y - 1) == "p":
+    if board(pos, square['x'] + 1, square['y'] - 1) == "p":
         return 0
     if not attack(pos, square):
         return 0
-    if attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square.x, "y": 7 - square.y}) > 1:
+    if attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square['x'], "y": 7 - square['y']}) > 1:
         return 0
     return 1
 
-def minor_threat(pos, square):
+def minor_threat(pos, square = None):
     if square is None:
         return sum(pos, minor_threat)
-    type = "pnbrqk".index(board(pos, square.x, square.y))
-    if type < 0:
+    type_piece = "pnbrqk".index(board(pos, square['x'], square['y']))
+    if type_piece < 0:
         return 0
     if not knight_attack(pos, square) and not bishop_xray_attack(pos, square):
         return 0
-    if (board(pos, square.x, square.y) == "p"
-        or not (board(pos, square.x - 1, square.y - 1) == "p"
-                or board(pos, square.x + 1, square.y - 1) == "p"
-                or (attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square.x, "y": 7 - square.y}) > 1))
+    if (board(pos, square['x'], square['y']) == "p"
+        or not (board(pos, square['x'] - 1, square['y'] - 1) == "p"
+                or board(pos, square['x'] + 1, square['y'] - 1) == "p"
+                or (attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square['x'], "y": 7 - square['y']}) > 1))
         and not weak_enemies(pos, square)):
         return 0
-    return type + 1
+    return type_piece + 1
 
-def rook_threat(pos, square):
+def rook_threat(pos, square = None):
     if square is None:
         return sum(pos, rook_threat)
-    type = "pnbrqk".index(board(pos, square.x, square.y))
-    if type < 0:
+    type_piece = "pnbrqk".index(board(pos, square['x'], square['y']))
+    if type_piece < 0:
         return 0
     if not weak_enemies(pos, square):
         return 0
     if not rook_xray_attack(pos, square):
         return 0
-    return type + 1
+    return type_piece + 1
 
-def hanging(pos, square):
+def hanging(pos, square = None):
     if square is None:
         return sum(pos, hanging)
     if not weak_enemies(pos, square):
@@ -1613,7 +1616,7 @@ def hanging(pos, square):
         return 1
     return 0
 
-def king_threat(pos, square):
+def king_threat(pos, square = None):
     if square is None:
         return sum(pos, king_threat)
     if "pnbrq".find(board(pos, square['x'], square['y'])) < 0:
@@ -1624,7 +1627,7 @@ def king_threat(pos, square):
         return 0
     return 1
 
-def pawn_push_threat(pos, square):
+def pawn_push_threat(pos, square = None):
     if square is None:
         return sum(pos, pawn_push_threat)
     if "pnbrqk".find(board(pos, square['x'], square['y'])) < 0:
@@ -1648,7 +1651,7 @@ def pawn_push_threat(pos, square):
             return 1
     return 0
 
-def slider_on_queen(pos, square):
+def slider_on_queen(pos, square = None):
     if square is None:
         return sum(pos, slider_on_queen)
     pos2 = colorflip(pos)
@@ -1768,7 +1771,7 @@ def threats_eg(pos):
 
 ######### BEGIN WINNABLE
 
-def winnable(pos, square):
+def winnable(pos, square = None):
     if square is not None:
         return 0
     pawns = 0
