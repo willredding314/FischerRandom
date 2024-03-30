@@ -534,9 +534,9 @@ def safe_check(pos, square, type):
         return 0
     if type == 1 and safe_check(pos, square, 3):
         return 0
-    if (not attack(pos2, {"x": square.x, "y": 7 - square.y})
+    if ((not attack(pos2, {"x": square.x, "y": 7 - square.y}) 
         or (weak_squares(pos, square) and attack(pos, square) > 1))
-        and (type != 3 or not queen_attack(pos2, {"x": square.x, "y": 7 - square.y})):
+        and (type != 3 or not queen_attack(pos2, {"x": square.x, "y": 7 - square.y}))):
         return 1
     return 0
 
@@ -550,7 +550,7 @@ def king_attackers_count(pos, square):
         for dir in range(-1, 2, 2):
             fr = board(pos, square.x + dir * 2, square.y) == "P"
             if square.x + dir >= 0 and square.x + dir <= 7 and king_ring(pos, {"x": square.x + dir, "y": square.y - 1}, True):
-                v = v + (fr ? 0.5 : 1)
+                v = v + (0.5 if fr else 1)
         return v
     for x in range(8):
         for y in range(8):
@@ -715,7 +715,7 @@ def king_danger(pos):
     blockersForKing = blockers_for_king(pos)
     kingFlankAttack = flank_attack(pos)
     kingFlankDefense = flank_defense(pos)
-    noQueen = (queen_count(pos) > 0) ? 0 : 1
+    noQueen = 0 if (queen_count(pos) > 0) else 1
     v = count * weight + 69 * kingAttacks + 185 * weak - 100 * (knight_defender(colorflip(pos)) > 0) + 148 * unsafeChecks + 98 * blockersForKing - 4 * kingFlankDefense + ((3 * kingFlankAttack * kingFlankAttack / 8) << 0) - 873 * noQueen - ((6 * (shelter_strength(pos) - shelter_storm(pos)) / 8) << 0) + mobility_mg(pos) - mobility_mg(colorflip(pos)) + 37 + ((772 * min(safe_check(pos, None, 3), 1.45)) << 0) + ((1084 * min(safe_check(pos, None, 2), 1.75)) << 0) + ((645 * min(safe_check(pos, None, 1), 1.50)) << 0) + ((792 * min(safe_check(pos, None, 0), 1.62)) << 0)
     if v > 100:
         return v
@@ -910,9 +910,9 @@ def candidate_passed(pos, square):
             return 1
     if board(pos, square.x, square.y - 1) == "p":
         return 0
-    lever = (board(pos, square.x - 1, square.y - 1) == "p" ? 1 : 0) + (board(pos, square.x + 1, square.y - 1) == "p" ? 1 : 0)
-    leverpush = (board(pos, square.x - 1, square.y - 2) == "p" ? 1 : 0) + (board(pos, square.x + 1, square.y - 2) == "p" ? 1 : 0)
-    phalanx = (board(pos, square.x - 1, square.y) == "P" ? 1 : 0) + (board(pos, square.x + 1, square.y) == "P" ? 1 : 0)
+    lever = (1 if board(pos, square.x - 1, square.y - 1) == "p" else 0) + (1 if board(pos, square.x + 1, square.y - 1) == "p" else 0)
+    leverpush = (1 if board(pos, square.x - 1, square.y - 2) == "p" else 0) + (1 if board(pos, square.x + 1, square.y - 2) == "p" else 0)
+    phalanx = (1 if board(pos, square.x - 1, square.y) == "P" else 0) + (1 if board(pos, square.x + 1, square.y) == "P" else 0)
     if lever - supported(pos, square) > 1:
         return 0
     if leverpush - phalanx > 0:
@@ -1278,7 +1278,7 @@ def bishop_pawns(pos, square):
                 v += 1
             if board(pos, x, y) == "P" and x > 1 and x < 6 and board(pos, x, y - 1) != "-":
                 blocked += 1
-    return v * (blocked + (pawn_attack(pos, square) > 0 ? 0 : 1))
+    return v * (blocked + (0 if pawn_attack(pos, square) > 0 else 1))
 
 def rook_on_file(pos, square):
     if square is None:
@@ -1476,7 +1476,7 @@ def pieces_mg(pos, square):
     v += 16 * rook_on_king_ring(pos, square)
     v += 24 * bishop_on_king_ring(pos, square)
     v += [0,19,48][rook_on_file(pos, square)]
-    v -= trapped_rook(pos, square) * 55 * (pos.c[0] or pos.c[1] ? 1 : 2)
+    v -= trapped_rook(pos, square) * 55 * (1 if pos.c[0] or pos.c[1] else 2)
     v -= 56 * weak_queen(pos, square)
     v -= 2 * queen_infiltration(pos, square)
     v -= (8 if board(pos, square.x, square.y) == "N" else 6) * king_protector(pos, square)
@@ -1495,7 +1495,7 @@ def pieces_eg(pos, square):
     v -= 5 * bishop_xray_pawns(pos, square)
     v += 11 * rook_on_queen_file(pos, square)
     v += [0,7,29][rook_on_file(pos, square)]
-    v -= trapped_rook(pos, square) * 13 * (pos.c[0] or pos.c[1] ? 1 : 2)
+    v -= trapped_rook(pos, square) * 13 * (1 if pos.c[0] or pos.c[1] else 2)
     v -= 15 * weak_queen(pos, square)
     v += 14 * queen_infiltration(pos, square)
     v -= 9 * king_protector(pos, square)
@@ -1585,8 +1585,8 @@ def minor_threat(pos, square):
     if (board(pos, square.x, square.y) == "p"
         or not (board(pos, square.x - 1, square.y - 1) == "p"
                 or board(pos, square.x + 1, square.y - 1) == "p"
-                or (attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square.x, "y": 7 - square.y}) > 1))):
-        and not weak_enemies(pos, square):
+                or (attack(pos, square) <= 1 and attack(colorflip(pos), {"x": square.x, "y": 7 - square.y}) > 1))
+        and not weak_enemies(pos, square)):
         return 0
     return type + 1
 
