@@ -27,33 +27,45 @@ def minimax(board: chess.Board, depth, alpha, beta, maximizing_player=True):
     if board.is_game_over():
         outcome = board.outcome().winner
         if outcome is None:
-            return 0
+            return None, 0
         else:
-            return float("inf") if outcome else float("-inf")
-
+            return None, float("inf") if outcome else float("-inf")
+    
     if depth == 0:
-        return get_material(board)
+        return None, get_material(board)
 
     if maximizing_player:
         value = float("-inf")
+        best_mv = None
         for move in board.legal_moves:
+            if best_mv is None:
+                best_mv = move
             board.push(move)
-            value = max(value, minimax(board, depth-1, alpha, beta, False))
+            mv, val = minimax(board, depth-1, alpha, beta, False)
+            if val > value:
+                best_mv = move
+                value = val
             board.pop()
             if value > beta:
                 break
             alpha = max(alpha, value)
-        return value
+        return best_mv, value - random.random()/1e6
     else:
         value = float("inf")
+        best_mv = None
         for move in board.legal_moves:
+            if best_mv is None:
+                best_mv = move
             board.push(move)
-            value = min(value, minimax(board, depth-1, alpha, beta, True))
+            mv, val = minimax(board, depth-1, alpha, beta, True)
+            if val < value:
+                best_mv = move
+                value = val
             board.pop()
             if value < alpha:
                 break
             beta = min(beta, value)
-        return value
+        return best_mv, value + random.random()/1e6
 
 # Given a board state and a depth, searches that depth on each move.
 # This method logic should likely be removed later and moved into the minimax method.
@@ -92,7 +104,7 @@ board = chess.Board(chess960=True)
 print(board)
 pgn = ""
 for i in range(1000):
-    move, val = get_move(board, 3)
+    move, val = minimax(board, 4, float("-inf"), float("inf"), board.turn)
     if move is None:
         break
     if i % 2 == 0:
