@@ -1,4 +1,5 @@
 # BOARD REPRESENTATION
+import chess
 
 def board(pos, x, y):
     if x >= 0 and x <= 7 and y >= 0 and y <= 7:
@@ -105,3 +106,17 @@ def rule50(pos, square):
         return 0
     return pos['m'][0]
 
+# Function to convert a chess board into a board representation
+def translate_board(board: chess.Board):
+    pos = {}
+    pos['m'] = [board.halfmove_clock, board.fullmove_number]
+    pos['e'] = board.ep_square
+    pos['w'] = board.turn
+    pos['c'] = [board.has_kingside_castling_rights(True), board.has_queenside_castling_rights(True), board.has_kingside_castling_rights(False), board.has_queenside_castling_rights(False)]
+    arr = [['-' for i in range(8)] for j in range(8)]
+    for square, piece in board.piece_map().items():
+        row = square // 8
+        col = square % 8
+        arr[col][7-row] = piece.symbol()
+    pos['b'] = arr
+    return pos
