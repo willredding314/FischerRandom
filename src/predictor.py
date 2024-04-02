@@ -5,7 +5,7 @@ class Predictor(nn.Module):
 
     def __init__(self):
         super(Predictor, self).__init__()
-        self.fc = nn.Linear(100, 1) # GET MORE ACCURATE VALUE
+        self.fc = nn.Linear(50, 1) # GET MORE ACCURATE VALUE
 
     def forward(self, x):
         x = self.fc(x)
