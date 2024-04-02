@@ -3,19 +3,19 @@ from board_rep import *
 # MAIN EVALUATIONS
 
 def main_evaluation(pos):
-    mg = middle_game_evaluation(pos, True)
-    eg = end_game_evaluation(pos, True)
+    mg = middle_game_evaluation(pos)
+    eg = end_game_evaluation(pos)
     p = phase(pos)
-    rule50 = rule50(pos)
+    rule50_val = rule50(pos)
     eg = eg * scale_factor(pos, eg) / 64
     v = (((mg * p + ((eg * (128 - p)) // 1)) // 128) // 1)
-    if len(arguments) == 1:
+    if pos is not None:
         v = ((v // 16) // 1) * 16
     v += tempo(pos)
-    v = (v * (100 - rule50) // 100) // 1
+    v = (v * (100 - rule50_val) // 100) // 1
     return v
 
-def middle_game_evaluation(pos, nowinnable):
+def middle_game_evaluation(pos, nowinnable = True):
     v = 0
     v += piece_value_mg(pos) - piece_value_mg(colorflip(pos))
     v += psqt_mg(pos) - psqt_mg(colorflip(pos))
@@ -31,7 +31,7 @@ def middle_game_evaluation(pos, nowinnable):
         v += winnable_total_mg(pos, v)
     return v
 
-def end_game_evaluation(pos, nowinnable):
+def end_game_evaluation(pos, nowinnable = True):
     v = 0
     v += piece_value_eg(pos) - piece_value_eg(colorflip(pos))
     v += psqt_eg(pos) - psqt_eg(colorflip(pos))
@@ -78,7 +78,7 @@ def pinned_direction(pos, square = None):
                     break
     return 0
 
-def knight_attack(pos, s2, square = None):
+def knight_attack(pos, square = None, s2 = None):
     if square is None:
         return sum(pos, knight_attack)
     v = 0
@@ -86,11 +86,11 @@ def knight_attack(pos, s2, square = None):
         ix = ((i > 3) + 1) * (((i % 4) > 1) * 2 - 1)
         iy = (2 - (i > 3)) * ((i % 2 == 0) * 2 - 1)
         b = board(pos, square['x'] + ix, square['y'] + iy)
-        if b == "N" and (s2 is None or s2.x == square['x'] + ix and s2.y == square['y'] + iy) and not pinned(pos, {"x": square['x'] + ix, "y": square['y'] + iy}):
+        if b == "N" and (s2 is None or s2['x'] == square['x'] + ix and s2['y'] == square['y'] + iy) and not pinned(pos, {"x": square['x'] + ix, "y": square['y'] + iy}):
             v += 1
     return v
 
-def bishop_xray_attack(pos, s2, square = None):
+def bishop_xray_attack(pos, square = None, s2 = None):
     if square is None:
         return sum(pos, bishop_xray_attack)
     v = 0
@@ -99,15 +99,15 @@ def bishop_xray_attack(pos, s2, square = None):
         iy = ((i % 2 == 0) * 2 - 1)
         for d in range(1, 8):
             b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
-            if b == "B" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
-                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
-                if dir == 0 or abs(ix + iy * 3) == dir:
+            if b == "B" and (s2 is None or (s2['x'] == square['x'] + d * ix and s2['y'] == square['y'] + d * iy)):
+                pinned_dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
+                if pinned_dir == 0 or abs(ix + iy * 3) == pinned_dir:
                     v += 1
             if b != "-" and b != "Q" and b != "q":
                 break
     return v
 
-def rook_xray_attack(pos, s2, square = None):
+def rook_xray_attack(pos, square = None, s2 = None):
     if square is None:
         return sum(pos, rook_xray_attack)
     v = 0
@@ -115,16 +115,16 @@ def rook_xray_attack(pos, s2, square = None):
         ix = -1 if i == 0 else 1 if i == 1 else 0
         iy = -1 if i == 2 else 1 if i == 3 else 0
         for d in range(1, 8):
-            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
-            if b == "R" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
-                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
-                if dir == 0 or abs(ix + iy * 3) == dir:
+            b = board(pos, int(square['x'] + d * ix), int(square['y'] + d * iy))
+            if b == "R" and (s2 is None or (s2['x'] == square['x'] + d * ix and s2['y'] == square['y'] + d * iy)):
+                pinned_dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
+                if pinned_dir == 0 or abs(ix + iy * 3) == pinned_dir:
                     v += 1
             if b != "-" and b != "R" and b != "Q" and b != "q":
                 break
     return v
 
-def queen_attack(pos, s2, square = None):
+def queen_attack(pos, square = None, s2 = None):
     if square is None:
         return sum(pos, queen_attack)
     v = 0
@@ -132,10 +132,10 @@ def queen_attack(pos, s2, square = None):
         ix = (i + (i > 3)) % 3 - 1
         iy = (((i + (i > 3)) // 3) << 0) - 1
         for d in range(1, 8):
-            b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
-            if b == "Q" and (s2 is None or (s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy)):
-                dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
-                if dir == 0 or abs(ix + iy * 3) == dir:
+            b = board(pos, int(square['x'] + d * ix), int(square['y'] + d * iy))
+            if b == "Q" and (s2 is None or (s2['x'] == square['x'] + d * ix and s2['y'] == square['y'] + d * iy)):
+                pinned_dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
+                if pinned_dir == 0 or abs(ix + iy * 3) == pinned_dir:
                     v += 1
             if b != "-":
                 break
@@ -166,15 +166,15 @@ def attack(pos, square = None):
     if square is None:
         return sum(pos, attack)
     v = 0
-    v += pawn_attack(pos, square)
-    v += king_attack(pos, square)
-    v += knight_attack(pos, square)
-    v += bishop_xray_attack(pos, square)
-    v += rook_xray_attack(pos, square)
-    v += queen_attack(pos, square)
+    v += pawn_attack(pos, square = square)
+    v += king_attack(pos, square = square)
+    v += knight_attack(pos, s2 = None, square = square)
+    v += bishop_xray_attack(pos, s2 = None, square = square)
+    v += rook_xray_attack(pos, s2 = None, square = square)
+    v += queen_attack(pos, s2 = None, square = square)
     return v
 
-def queen_attack_diagonal(pos, s2, square = None):
+def queen_attack_diagonal(pos, s2 = None, square = None):
     if square is None:
         return sum(pos, queen_attack_diagonal)
     v = 0
@@ -185,7 +185,7 @@ def queen_attack_diagonal(pos, s2, square = None):
             continue
         for d in range(1, 8):
             b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
-            if b == "Q" and (s2 is None or s2.x == square['x'] + d * ix and s2.y == square['y'] + d * iy):
+            if b == "Q" and (s2 is None or s2['x'] == square['x'] + d * ix and s2['y'] == square['y'] + d * iy):
                 dir = pinned_direction(pos, {"x": square['x'] + d * ix, "y": square['y'] + d * iy})
                 if dir == 0 or abs(ix + iy * 3) == dir:
                     v += 1
@@ -272,7 +272,7 @@ def king_distance(pos, square = None):
                 return max(abs(x - square['x']), abs(y - square['y']))
     return 0
 
-def king_ring(pos, full, square = None):
+def king_ring(pos, square, full):
     if square is None:
         return sum(pos, king_ring)
     if not full and board(pos, square['x'] + 1, square['y'] - 1) == "p" and board(pos, square['x'] - 1, square['y'] - 1) == "p":
@@ -310,6 +310,10 @@ def imbalance(pos, square = None):
         return sum(pos, imbalance)
     qo = [[0],[40,38],[32,255,-62],[0,104,4,0],[-26,-2,47,105,-208],[-189,24,117,133,-134,-6]]
     qt = [[0],[36,0],[9,63,0],[59,65,42,0],[46,39,24,-24,0],[97,100,-42,137,268,0]]
+
+    if (board(pos, square['x'], square['y']) == '-' or 'K' or 'k') or board(pos, square['x'], square['y']) not in "XPNBRQxpnbrq":
+        return 0
+
     j = "XPNBRQxpnbrq".index(board(pos, square['x'], square['y']))
     if j < 0 or j > 5:
         return 0
@@ -317,6 +321,9 @@ def imbalance(pos, square = None):
     v = 0
     for x in range(8):
         for y in range(8):
+            if board(pos, x, y) not in "XPNBRQxpnbrq":
+                continue
+
             i = "XPNBRQxpnbrq".index(board(pos, x, y))
             if i < 0:
                 continue
@@ -393,7 +400,7 @@ def strength_square(pos, square = None):
         v += weakness[f][us] if weakness[f][us] else 0
     return v
 
-def storm_square(pos, eg, square = None):
+def storm_square(pos, square = None, eg = False):
     if square == None:
         return sum(pos, storm_square)
     v = 0
@@ -427,9 +434,9 @@ def shelter_strength(pos, square = None):
     tx = None
     for x in range(8):
         for y in range(8):
-            if board(pos, x, y) == "k" or (pos.c[2] and x == 6 and y == 0) or (pos.c[3] and x == 2 and y == 0):
-                w1 = strength_square(pos, {"x":x,"y":y})
-                s1 = storm_square(pos, {"x":x,"y":y})
+            if board(pos, x, y) == "k" or (pos['c'][2] and x == 6 and y == 0) or (pos['c'][3] and x == 2 and y == 0):
+                w1 = strength_square(pos, square = {"x":x,"y":y})
+                s1 = storm_square(pos, square = {"x":x,"y":y})
                 if s1 - w1 < s - w:
                     w = w1
                     s = s1
@@ -449,9 +456,9 @@ def shelter_storm(pos, square = None):
     tx = None
     for x in range(8):
         for y in range(8):
-            if board(pos, x, y) == "k" or (pos.c[2] and x == 6 and y == 0) or (pos.c[3] and x == 2 and y == 0):
-                w1 = strength_square(pos, {"x": x, "y": y})
-                s1 = storm_square(pos, {"x": x, "y": y})
+            if board(pos, x, y) == "k" or (pos['c'][2] and x == 6 and y == 0) or (pos['c'][3] and x == 2 and y == 0):
+                w1 = strength_square(pos, square = {"x": x, "y": y})
+                s1 = storm_square(pos, square = {"x": x, "y": y})
                 if s1 - w1 < s - w:
                     w = w1
                     s = s1
@@ -487,10 +494,10 @@ def king_pawn_distance(pos, square = None):
         return v
     return 0
 
-def check(pos, type_piece, square = None):
+def check(pos, square = None, type_piece = None):
     if square is None:
         return sum(pos, check)
-    if (rook_xray_attack(pos, square) and (type_piece is None or type_piece == 2 or type_piece == 4)) or (queen_attack(pos, square) and (type_piece is None or type_piece == 3)):
+    if (rook_xray_attack(pos, s2 = None, square = square) and (type_piece is None or type_piece == 2 or type_piece == 4)) or (queen_attack(pos, s2 = None, square = square) and (type_piece is None or type_piece == 3)):
         for i in range(4):
             ix = -1 if i == 0 else 1 if i == 1 else 0
             iy = -1 if i == 2 else 1 if i == 3 else 0
@@ -500,7 +507,7 @@ def check(pos, type_piece, square = None):
                     return 1
                 if b != "-" and b != "q":
                     break
-    if (bishop_xray_attack(pos, square) and (type_piece is None or type_piece == 1 or type_piece == 4)) or (queen_attack(pos, square) and (type_piece is None or type_piece == 3)):
+    if (bishop_xray_attack(pos, s2 = None, square = square) and (type_piece is None or type_piece == 1 or type_piece == 4)) or (queen_attack(pos, s2 = None, square = square) and (type_piece is None or type_piece == 3)):
         for i in range(4):
             ix = (2 * (i > 1) - 1)
             iy = (2 * (i % 2 == 0) - 1)
@@ -510,7 +517,7 @@ def check(pos, type_piece, square = None):
                     return 1
                 if b != "-" and b != "q":
                     break
-    if knight_attack(pos, square) and (type_piece is None or type_piece == 0 or type_piece == 4):
+    if knight_attack(pos, square = square) and (type_piece is None or type_piece == 0 or type_piece == 4):
         if (board(pos, square["x"] + 2, square["y"] + 1) == "k" or
             board(pos, square["x"] + 2, square["y"] - 1) == "k" or
             board(pos, square["x"] + 1, square["y"] + 2) == "k" or
@@ -522,19 +529,20 @@ def check(pos, type_piece, square = None):
             return 1
     return 0
 
-def safe_check(pos, type_piece, square = None):
+def safe_check(pos, type_piece = None, square = None):
+    #print(square)
     if square is None:
         return sum(pos, safe_check, type_piece)
-    if board(pos, square['x'], square['y']) is None:
+    if board(pos, square['x'], square['y']) is None or board(pos, square['x'], square['y']) not in ['P', 'N', 'B', 'R', 'Q', 'K']:
         return 0
     if "PNBRQK".index(board(pos, square['x'], square['y'])) >= 0:
         return 0
     if not check(pos, square, type_piece):
         return 0
     pos2 = colorflip(pos)
-    if type_piece == 3 and safe_check(pos, square, 2):
+    if type_piece == 3 and safe_check(pos, type_piece = 2, square = square):
         return 0
-    if type_piece == 1 and safe_check(pos, square, 3):
+    if type_piece == 1 and safe_check(pos, type_piece = 3, square = square):
         return 0
     if ((not attack(pos2, {"x": square['x'], "y": 7 - square['y']}) 
         or (weak_squares(pos, square) and attack(pos, square) > 1))
@@ -557,11 +565,11 @@ def king_attackers_count(pos, square = None):
     for x in range(8):
         for y in range(8):
             s2 = {"x": x, "y": y}
-            if king_ring(pos, s2):
-                if (knight_attack(pos, s2, square)
-                    or bishop_xray_attack(pos, s2, square)
-                    or rook_xray_attack(pos, s2, square)
-                    or queen_attack(pos, s2, square)):
+            if king_ring(pos, s2, full = None):
+                if (knight_attack(pos, s2 = s2, square = square)
+                    or bishop_xray_attack(pos, s2 = s2, square = square)
+                    or rook_xray_attack(pos, s2 = s2, square = square)
+                    or queen_attack(pos, s2 = s2, square = square)):
                     return 1
     return 0
 
@@ -575,7 +583,7 @@ def king_attackers_weight(pos, square = None):
 def king_attacks(pos, square = None):
     if square is None:
         return sum(pos, king_attacks)
-    if board(pos, square['x'], square['y']) is None:
+    if board(pos, square['x'], square['y']) is None or board(pos, square['x'], square['y']) not in ['N', 'B', 'R', 'Q']:
         return 0
     if "NBRQ".index(board(pos, square['x'], square['y'])) < 0:
         return 0
@@ -593,10 +601,10 @@ def king_attacks(pos, square = None):
         for y in range(ky - 1, ky + 2):
             s2 = {"x": x, "y": y}
             if x >= 0 and y >= 0 and x <= 7 and y <= 7 and (x != kx or y != ky):
-                v += knight_attack(pos, s2, square)
-                v += bishop_xray_attack(pos, s2, square)
-                v += rook_xray_attack(pos, s2, square)
-                v += queen_attack(pos, s2, square)
+                v += knight_attack(pos, s2 = s2, square = square)
+                v += bishop_xray_attack(pos, s2 = s2, square = square)
+                v += rook_xray_attack(pos, s2 = s2, square = square)
+                v += queen_attack(pos, s2 = s2, square = square)
     return v
 
 def weak_bonus(pos, square = None):
@@ -604,7 +612,7 @@ def weak_bonus(pos, square = None):
         return sum(pos, weak_bonus)
     if not weak_squares(pos, square):
         return 0
-    if not king_ring(pos, square):
+    if not king_ring(pos, square, None):
         return 0
     return 1
 
@@ -613,10 +621,10 @@ def weak_squares(pos, square = None):
         return sum(pos, weak_squares)
     if attack(pos, square):
         pos2 = colorflip(pos)
-        attack = attack(pos2, {'x': square['x'], 'y': 7 - square['y']})
-        if attack >= 2:
+        attack_val = attack(pos2, {'x': square['x'], 'y': 7 - square['y']})
+        if attack_val >= 2:
             return 0
-        if attack == 0:
+        if attack_val == 0:
             return 1
         if king_attack(pos2, {'x': square['x'], 'y': 7 - square['y']}) or queen_attack(pos2, {'x': square['x'], 'y': 7 - square['y']}):
             return 1
@@ -625,18 +633,18 @@ def weak_squares(pos, square = None):
 def unsafe_checks(pos, square = None):
     if square is None:
         return sum(pos, unsafe_checks)
-    if check(pos, square, 0) and safe_check(pos, None, 0) == 0:
+    if check(pos, square, 0) and safe_check(pos, square = None, type_piece = 0) == 0:
         return 1
-    if check(pos, square, 1) and safe_check(pos, None, 1) == 0:
+    if check(pos, square, 1) and safe_check(pos, square = None, type_piece = 1) == 0:
         return 1
-    if check(pos, square, 2) and safe_check(pos, None, 2) == 0:
+    if check(pos, square, 2) and safe_check(pos, square = None, type_piece = 2) == 0:
         return 1
     return 0
 
 def knight_defender(pos, square = None):
     if square is None:
         return sum(pos, knight_defender)
-    if knight_attack(pos, square) and king_attack(pos, square):
+    if knight_attack(pos, s2 = None, square = square) and king_attack(pos, square):
         return 1
     return 0
 
@@ -647,9 +655,9 @@ def endgame_shelter(pos, square = None):
     for x in range(8):
         for y in range(8):
             if board(pos, x, y) == "k" or (pos['c'][2] and x == 6 and y == 0) or (pos['c'][3] and x == 2 and y == 0):
-                w1 = strength_square(pos, {'x': x, 'y': y})
-                s1 = storm_square(pos, {'x': x, 'y': y})
-                e1 = storm_square(pos, {'x': x, 'y': y}, True)
+                w1 = strength_square(pos, square = {'x': x, 'y': y})
+                s1 = storm_square(pos, square = {'x': x, 'y': y})
+                e1 = storm_square(pos, square = {'x': x, 'y': y}, eg = True)
                 if s1 - w1 < s - w:
                     w = w1
                     s = s1
@@ -718,7 +726,7 @@ def king_danger(pos):
     kingFlankAttack = flank_attack(pos)
     kingFlankDefense = flank_defense(pos)
     noQueen = 0 if (queen_count(pos) > 0) else 1
-    v = count * weight + 69 * kingAttacks + 185 * weak - 100 * (knight_defender(colorflip(pos)) > 0) + 148 * unsafeChecks + 98 * blockersForKing - 4 * kingFlankDefense + ((3 * kingFlankAttack * kingFlankAttack / 8) << 0) - 873 * noQueen - ((6 * (shelter_strength(pos) - shelter_storm(pos)) / 8) << 0) + mobility_mg(pos) - mobility_mg(colorflip(pos)) + 37 + ((772 * min(safe_check(pos, None, 3), 1.45)) << 0) + ((1084 * min(safe_check(pos, None, 2), 1.75)) << 0) + ((645 * min(safe_check(pos, None, 1), 1.50)) << 0) + ((792 * min(safe_check(pos, None, 0), 1.62)) << 0)
+    v = count * weight + 69 * kingAttacks + 185 * weak - 100 * (knight_defender(colorflip(pos)) > 0) + 148 * unsafeChecks + 98 * blockersForKing - 4 * kingFlankDefense + (int((3 * kingFlankAttack * kingFlankAttack / 8)) << 0) - 873 * noQueen - (int((6 * (shelter_strength(pos) - shelter_storm(pos)) / 8)) << 0) + mobility_mg(pos) - mobility_mg(colorflip(pos)) + 37 + (int((772 * min(safe_check(pos, type_piece = 3, square = None), 1.45))) << 0) + (int(1084 * min(safe_check(pos, type_piece = 2, square = None), 1.75)) << 0) + (int(645 * min(safe_check(pos, type_piece = 1, square = None), 1.50)) << 0) + (int(792 * min(safe_check(pos, type_piece = 0, square = None), 1.62)) << 0)
     if v > 100:
         return v
     return 0
@@ -728,7 +736,7 @@ def king_mg(pos):
     kd = king_danger(pos)
     v -= shelter_strength(pos)
     v += shelter_storm(pos)
-    v += (kd * kd / 4096) << 0
+    v += int(kd * kd / 4096) << 0
     v += 8 * flank_attack(pos)
     v += 17 * pawnless_flank(pos)
     return v
@@ -738,7 +746,7 @@ def king_eg(pos):
     v -= 16 * king_pawn_distance(pos)
     v += endgame_shelter(pos)
     v += 95 * pawnless_flank(pos)
-    v += (king_danger(pos) / 16) << 0
+    v += int(king_danger(pos) / 16) << 0
     return v
 
 # END KING
@@ -748,6 +756,8 @@ def king_eg(pos):
 def non_pawn_material(pos, square = None):
     if square is None:
         return sum(pos, non_pawn_material)
+    if (board(pos, square['x'], square['y']) == '-' or 'K' or 'P') or board(pos, square['x'], square['y']).islower():
+        return 0
     i = "NBRQ".index(board(pos, square['x'], square['y']))
     if i >= 0:
         return piece_value_bonus(pos, True, square)
@@ -757,8 +767,11 @@ def piece_value_bonus(pos, mg, square = None):
     if square is None:
         return sum(pos, piece_value_bonus)
     a = [124, 781, 825, 1276, 2538] if mg else [206, 854, 915, 1380, 2682]
-    print(board(pos, square['x'], square['y']))
-    i = "PNBRQ".index(board(pos, square['x'], square['y']).upper())
+    
+    if (board(pos, square['x'], square['y']) == '-' or 'k') or board(pos, square['x'], square['y']).islower():
+        return 0
+
+    i = "PNBRQ".index(board(pos, square['x'], square['y']))
     if i >= 0:
         return a[i]
     return 0
@@ -786,6 +799,9 @@ def psqt_bonus(pos, mg, square = None):
         [0,0,0,0,0,0,0,0],[-10,-6,10,0,14,7,-5,-19],[-10,-10,-10,4,4,3,-6,-4],[6,-2,-8,-4,-13,-12,-10,-9],[10,5,4,-5,-5,-5,14,9],
         [28,20,21,28,30,7,6,13],[0,-11,12,21,25,19,4,7],[0,0,0,0,0,0,0,0]
     ]
+    if board(pos, square['x'], square['y']) == '-' or board(pos, square['x'], square['y']).islower():
+        return 0
+
     i = "PNBRQK".index(board(pos, square['x'], square['y']))
     if i < 0:
         return 0
@@ -807,12 +823,12 @@ def piece_value_eg(pos, square = None):
 def psqt_mg(pos, square = None):
     if square is None:
         return sum(pos, psqt_mg)
-    return psqt_bonus(pos, square, True)
+    return psqt_bonus(pos, True, square)
 
 def psqt_eg(pos, square = None):
     if square is None:
         return sum(pos, psqt_eg)
-    return psqt_bonus(pos, square, False)
+    return psqt_bonus(pos, False, square)
 
 
 # END MATERIAL
@@ -831,13 +847,13 @@ def mobility(pos, square = None):
             s2 = {"x": x, "y": y}
             if not mobility_area(pos, s2):
                 continue
-            if b == "N" and knight_attack(pos, s2, square) and board(pos, x, y) != 'Q':
+            if b == "N" and knight_attack(pos, s2 = s2, square = square) and board(pos, x, y) != 'Q':
                 v += 1
-            if b == "B" and bishop_xray_attack(pos, s2, square) and board(pos, x, y) != 'Q':
+            if b == "B" and bishop_xray_attack(pos, s2 = s2, square = square) and board(pos, x, y) != 'Q':
                 v += 1
-            if b == "R" and rook_xray_attack(pos, s2, square):
+            if b == "R" and rook_xray_attack(pos, s2 = s2, square = square):
                 v += 1
-            if b == "Q" and queen_attack(pos, s2, square):
+            if b == "Q" and queen_attack(pos, s2 = s2, square = square):
                 v += 1
     return v
 
@@ -858,7 +874,7 @@ def mobility_area(pos, square = None):
         return 0
     return 1
 
-def mobility_bonus(pos, mg, square = None):
+def mobility_bonus(pos, square, mg):
     if square is None:
         return sum(pos, mobility_bonus, mg)
     bonus = [[-62,-53,-12,-4,3,13,22,28,33],
@@ -868,6 +884,9 @@ def mobility_bonus(pos, mg, square = None):
                                                                                                                                  [-59,-23,-3,13,24,42,54,57,65,73,78,86,88,97],
                                                                                                                                  [-78,-17,23,39,70,99,103,121,134,139,158,164,168,169,172],
                                                                                                                                  [-48,-30,-7,19,40,55,59,75,78,96,96,100,121,127,131,133,136,141,147,150,151,168,168,171,182,182,192,219]]
+    if board(pos, square['x'], square['y']) not in ['N', 'B', 'R', 'Q']:
+        return 0
+
     i = "NBRQ".index(board(pos, square['x'], square['y']))
     if i < 0:
         return 0
@@ -1253,7 +1272,12 @@ def reachable_outpost(pos, square = None):
     v = 0
     for x in range(8):
         for y in range(2, 5):
-            if (board(pos, square['x'], square['y']) == "N" and "PNBRQK".index(board(pos, x, y)) < 0 and knight_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})) or (board(pos, square['x'], square['y']) == "B" and "PNBRQK".index(board(pos, x, y)) < 0 and bishop_xray_attack(pos, {x:x,y:y}, square) and outpost_square(pos, {x:x,y:y})):
+            if (board(pos, square['x'], square['y']) == "N" and (board(pos, x, y) == '-' or board(pos, x, y).islower() or "PNBRQK".index(board(pos, x, y)) < 0)
+                and knight_attack(pos, {'x': x, 'y': y}, square)
+                and outpost_square(pos, {'x': x, 'y': y})) or \
+                (board(pos, square['x'], square['y']) == "B" and (board(pos, x, y) == '-' or board(pos, x, y).islower() or "PNBRQK".index(board(pos, x, y)) < 0)
+                and bishop_xray_attack(pos, {'x': x, 'y': y}, square)
+                and outpost_square(pos, {'x': x, 'y': y})):
                 support = 2 if board(pos, x - 1, y + 1) == "P" or board(pos, x + 1, y + 1) == "P" else 1
                 v = max(v, support)
     return v
@@ -1323,7 +1347,7 @@ def weak_queen(pos, square = None):
         return 0
     for i in range(8):
         ix = (i + (i > 3)) % 3 - 1
-        iy = (((i + (i > 3)) / 3) << 0) - 1
+        iy = (int((i + (i > 3)) / 3) << 0) - 1
         count = 0
         for d in range(1, 8):
             b = board(pos, square['x'] + d * ix, square['y'] + d * iy)
@@ -1425,7 +1449,7 @@ def rook_on_king_ring(pos, square = None):
     if king_attackers_count(pos, square) > 0:
         return 0
     for y in range(8):
-        if king_ring(pos, {"x": square['x'], "y": y}):
+        if king_ring(pos, {"x": square['x'], "y": y}, full = None):
             return 1
     return 0
 
@@ -1444,7 +1468,7 @@ def bishop_on_king_ring(pos, square = None):
             y = square['y'] + d * iy
             if board(pos, x, y) == "x":
                 break
-            if king_ring(pos, {"x": x, "y": y}):
+            if king_ring(pos, {"x": x, "y": y}, full = None):
                 return 1
             if board(pos, x, y).upper() == "P":
                 break
@@ -1479,7 +1503,7 @@ def pieces_mg(pos, square = None):
     v += 16 * rook_on_king_ring(pos, square)
     v += 24 * bishop_on_king_ring(pos, square)
     v += [0,19,48][rook_on_file(pos, square)]
-    v -= trapped_rook(pos, square) * 55 * (1 if pos.c[0] or pos.c[1] else 2)
+    v -= trapped_rook(pos, square) * 55 * (1 if pos['c'][0] or pos['c'][1] else 2)
     v -= 56 * weak_queen(pos, square)
     v -= 2 * queen_infiltration(pos, square)
     v -= (8 if board(pos, square['x'], square['y']) == "N" else 6) * king_protector(pos, square)
@@ -1498,7 +1522,7 @@ def pieces_eg(pos, square = None):
     v -= 5 * bishop_xray_pawns(pos, square)
     v += 11 * rook_on_queen_file(pos, square)
     v += [0,7,29][rook_on_file(pos, square)]
-    v -= trapped_rook(pos, square) * 13 * (1 if pos.c[0] or pos.c[1] else 2)
+    v -= trapped_rook(pos, square) * 13 * (1 if pos['c'][0] or pos['c'][1] else 2)
     v -= 15 * weak_queen(pos, square)
     v += 14 * queen_infiltration(pos, square)
     v -= 9 * king_protector(pos, square)
@@ -1580,10 +1604,14 @@ def weak_enemies(pos, square = None):
 def minor_threat(pos, square = None):
     if square is None:
         return sum(pos, minor_threat)
+
+    if board(pos, square['x'], square['y']) not in ['p', 'n', 'b', 'r', 'q', 'k']:
+        return 0
+
     type_piece = "pnbrqk".index(board(pos, square['x'], square['y']))
     if type_piece < 0:
         return 0
-    if not knight_attack(pos, square) and not bishop_xray_attack(pos, square):
+    if not knight_attack(pos, s2 = None, square = square) and not bishop_xray_attack(pos, s2 = None, square = square):
         return 0
     if (board(pos, square['x'], square['y']) == "p"
         or not (board(pos, square['x'] - 1, square['y'] - 1) == "p"
@@ -1596,12 +1624,14 @@ def minor_threat(pos, square = None):
 def rook_threat(pos, square = None):
     if square is None:
         return sum(pos, rook_threat)
+    if board(pos, square['x'], square['y']) not in ['p', 'n', 'b', 'r', 'q', 'k']:
+        return 0
     type_piece = "pnbrqk".index(board(pos, square['x'], square['y']))
     if type_piece < 0:
         return 0
     if not weak_enemies(pos, square):
         return 0
-    if not rook_xray_attack(pos, square):
+    if not rook_xray_attack(pos, s2 = None, square = square):
         return 0
     return type_piece + 1
 
@@ -1667,12 +1697,12 @@ def slider_on_queen(pos, square = None):
         return 0
     if not mobility_area(pos, square):
         return 0
-    diagonal = queen_attack_diagonal(pos2, {'x': square['x'], 'y': 7 - square['y']})
+    diagonal = queen_attack_diagonal(pos2, square = {'x': square['x'], 'y': 7 - square['y']})
     v = 2 if queen_count(pos) == 0 else 1
-    if diagonal and bishop_xray_attack(pos, square):
+    if diagonal and bishop_xray_attack(pos, s2 = None, square = square):
         return v
     if (not diagonal
-        and rook_xray_attack(pos, square)
+        and rook_xray_attack(pos, s2 = None, square = square)
         and queen_attack(pos2, {'x': square['x'], 'y': 7 - square['y']})):
         return v
     return 0
@@ -1701,7 +1731,7 @@ def knight_on_queen(pos, square=None):
         return 0
     if not mobility_area(pos, square):
         return 0
-    if not knight_attack(pos, square):
+    if not knight_attack(pos, s2 = None, square = square):
         return 0
     v = 2 if queen_count(pos) == 0 else 1
     if abs(qx - square['x']) == 2 and abs(qy - square['y']) == 1:

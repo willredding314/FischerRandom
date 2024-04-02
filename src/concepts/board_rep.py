@@ -15,21 +15,21 @@ def colorflip(pos):
     return {'b': board, 'c': [pos['c'][2], pos['c'][3], pos['c'][0], pos['c'][1]], 'e': [pos['e'][0], 7-pos['e'][1]] if pos['e'] is not None else None, 'w': not pos['w'], 'm': [pos['m'][0], pos['m'][1]]}
 
 def sum(pos, func, param = None):
-    sum = 0
+    sum_val = 0
     for x in range(8):
         for y in range(8):
             if param:
-                sum += func(pos, {'x': x, 'y': y}, param)
+                sum_val += func(pos, param, square = {'x': x, 'y': y})
             else:
-                sum += func(pos, {'x': x, 'y': y})
-    return sum
+                sum_val += func(pos, square = {'x': x, 'y': y})
+    return sum_val
 
 pos = {
     'b': [['r','p','-','-','-','-','P','R'],
           ['n','p','-','-','-','-','P','N'],
           ['b','p','-','-','-','-','P','B'],
           ['q','p','-','-','-','-','P','Q'],
-          ['k','p','-','-','-','-','P','K'],
+          ['k','-','-','p','P','-','-','K'],
           ['b','p','-','-','-','-','P','B'],
           ['n','p','-','-','-','-','P','N'],
           ['r','p','-','-','-','-','P','R']],
@@ -40,6 +40,8 @@ pos = {
 }
 
 def scale_factor(pos, eg=None):
+    from eval import end_game_evaluation, colorflip, pawn_count, queen_count, bishop_count, knight_count, non_pawn_material, opposite_bishops, candidate_passed, piece_count
+
     if eg is None:
         eg = end_game_evaluation(pos)
     pos2 = colorflip(pos)
@@ -89,18 +91,20 @@ def scale_factor(pos, eg=None):
     return sf
 
 def phase(pos):
+    from eval import non_pawn_material
+
     midgameLimit = 15258
     endgameLimit = 3915
     npm = non_pawn_material(pos) + non_pawn_material(colorflip(pos))
     npm = max(endgameLimit, min(npm, midgameLimit))
     return int(((npm - endgameLimit) * 128) / (midgameLimit - endgameLimit))
 
-def tempo(pos, square):
+def tempo(pos, square = None):
     if square is not None:
         return 0
     return 28 * (1 if pos['w'] else -1)
 
-def rule50(pos, square):
+def rule50(pos, square = None):
     if square is not None:
         return 0
     return pos['m'][0]
