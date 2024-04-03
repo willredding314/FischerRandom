@@ -286,6 +286,10 @@ def king_ring(pos, square, full):
 def piece_count(pos, square = None):
     if square is None:
         return sum(pos, piece_count)
+
+    if board(pos, square['x'], square['y']) not in "PNBRQK":
+        return 0
+
     i = "PNBRQK".index(board(pos, square['x'], square['y']))
     return 1 if i >= 0 else 0
 
@@ -553,7 +557,7 @@ def safe_check(pos, type_piece = None, square = None):
 def king_attackers_count(pos, square = None):
     if square is None:
         return sum(pos, king_attackers_count)
-    if board(pos, square['x'], square['y']) is None:
+    if board(pos, square['x'], square['y']) is None or board(pos, square['x'], square['y']) not in "PNBRQ":
         return 0
     if board(pos, square['x'], square['y']) == "P":
         v = 0
@@ -577,10 +581,10 @@ def king_attackers_weight(pos, square = None):
     if square is None:
         return sum(pos, king_attackers_weight)
     if king_attackers_count(pos, square):
-        print(board(pos, square['x'], square['y']))
-        print(king_attackers_count(pos, square))
-        print(pos)
-        print(square)
+        #print(board(pos, square['x'], square['y']))
+        #print(king_attackers_count(pos, square))
+        #print(pos)
+        #print(square)
         return [0, 81, 52, 44, 10]["PNBRQ".index(board(pos, square['x'], square['y']))]
     return 0
 
@@ -960,7 +964,7 @@ def king_proximity(pos, square = None):
     for x in range(8):
         for y in range(8):
             if board(pos, x, y) == "k":
-                v += (min(max(abs(y - square['y'] + 1), abs(x - square['x'])), 5) * 19 / 4) << 0 * w
+                v += int(min(max(abs(y - square['y'] + 1), abs(x - square['x'])), 5) * 19 / 4) << 0 * w
             if board(pos, x, y) == "K":
                 v -= min(max(abs(y - square['y'] + 1), abs(x - square['x'])), 5) * 2 * w
                 if square['y'] > 1:
@@ -1009,8 +1013,8 @@ def passed_file(pos, square = None):
         return sum(pos, passed_file)
     if not passed_leverable(pos, square):
         return 0
-    ffile = ffile(pos, square)
-    return min(ffile - 1, 8 - ffile)
+    file_val = ffile(pos, square)
+    return min(file_val - 1, 8 - file_val)
 
 def passed_rank(pos, square = None):
     if square is None:
@@ -1032,7 +1036,7 @@ def passed_leverable(pos, square = None):
         s2 = {"x": square['x'] + i, "y": 7 - square['y']}
         if (
             board(pos, square['x'] + i, square['y'] + 1) == "P"
-            and "pnbrqk".index(board(pos, square['x'] + i, square['y'])) < 0
+            and board(pos, square['x'] + i, square['y']) not in "pnbrqk"
             and (attack(pos, s1) > 0 or attack(pos2, s2) <= 1)
         ):
             return 1
@@ -1415,9 +1419,13 @@ def outpost_total(pos, square = None):
         cnt = 0
         for x in range(8):
             for y in range(8):
-                if (abs(square['x'] - x) == 2 and abs(square['y'] - y) == 1 or abs(square['x'] - x) == 1 and abs(square['y'] - y) == 2) and "nbrqk".index(board(pos, x, y)) >= 0:
+                if board(pos, x, y) not in "nbrqk":
+                    pass
+                elif (abs(square['x'] - x) == 2 and abs(square['y'] - y) == 1 or abs(square['x'] - x) == 1 and abs(square['y'] - y) == 2):
                     ea = 1
-                if (x < 4 and square['x'] < 4 or x >= 4 and square['x'] >= 4) and "nbrqk".index(board(pos, x, y)) >= 0:
+                if board(pos, x, y) not in "nbrqk":
+                    continue
+                elif (x < 4 and square['x'] < 4 or x >= 4 and square['x'] >= 4):
                     cnt += 1
         if not ea and cnt <= 1:
             return 2
