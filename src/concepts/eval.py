@@ -209,9 +209,9 @@ def rank(pos, square = None):
         return sum(pos, rank)
     return 8 - square['y']
 
-def file(pos, square = None):
+def ffile(pos, square = None):
     if square is None:
-        return sum(pos, file)
+        return sum(pos, ffile)
     return 1 + square['x']
 
 def bishop_count(pos, square = None):
@@ -294,9 +294,9 @@ def pawn_attacks_span(pos, square = None):
         return sum(pos, pawn_attacks_span)
     pos2 = colorflip(pos)
     for y in range(square['y']):
-        if board(pos, square['x'] - 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] - 1, y + 1) != "P" and not backward(pos2, {x:square['x']-1, y:7-y}))):
+        if board(pos, square['x'] - 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] - 1, y + 1) != "P" and not backward(pos2, {'x':square['x']-1, 'y':7-y}))):
             return 1
-        if board(pos, square['x'] + 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] + 1, y + 1) != "P" and not backward(pos2, {x:square['x']+1, y:7-y}))):
+        if board(pos, square['x'] + 1, y) == "p" and (y == square['y'] - 1 or (board(pos, square['x'] + 1, y + 1) != "P" and not backward(pos2, {'x':square['x']+1, 'y':7-y}))):
             return 1
     return 0
 
@@ -577,6 +577,10 @@ def king_attackers_weight(pos, square = None):
     if square is None:
         return sum(pos, king_attackers_weight)
     if king_attackers_count(pos, square):
+        print(board(pos, square['x'], square['y']))
+        print(king_attackers_count(pos, square))
+        print(pos)
+        print(square)
         return [0, 81, 52, 44, 10]["PNBRQ".index(board(pos, square['x'], square['y']))]
     return 0
 
@@ -981,13 +985,13 @@ def passed_block(pos, square = None):
     defended1 = 0
     unsafe1 = 0
     for y in range(square['y'] - 1, -1, -1):
-        if attack(pos, {x: square['x'], y: y}):
+        if attack(pos, {'x': square['x'], 'y': y}):
             defended += 1
-        if attack(pos2, {x: square['x'], y: 7 - y}):
+        if attack(pos2, {'x': square['x'], 'y': 7 - y}):
             unsafe += 1
-        if attack(pos2, {x: square['x'] - 1, y: 7 - y}):
+        if attack(pos2, {'x': square['x'] - 1, 'y': 7 - y}):
             wunsafe += 1
-        if attack(pos2, {x: square['x'] + 1, y: 7 - y}):
+        if attack(pos2, {'x': square['x'] + 1, 'y': 7 - y}):
             wunsafe += 1
         if y == square['y'] - 1:
             defended1 = defended
@@ -1005,8 +1009,8 @@ def passed_file(pos, square = None):
         return sum(pos, passed_file)
     if not passed_leverable(pos, square):
         return 0
-    file = file(pos, square)
-    return min(file - 1, 8 - file)
+    ffile = ffile(pos, square)
+    return min(ffile - 1, 8 - ffile)
 
 def passed_rank(pos, square = None):
     if square is None:
@@ -1537,8 +1541,8 @@ def space_area(pos, square = None):
         return sum(pos, space_area)
     v = 0
     rank = rank(pos, square)
-    file = file(pos, square)
-    if (rank >= 2 and rank <= 4 and file >= 3 and file <= 6) and (board(pos, square['x'] ,square['y']) != "P") and (board(pos, square['x'] - 1 ,square['y'] - 1) != "p") and (board(pos, square['x'] + 1 ,square['y'] - 1) != "p"):
+    ffile = ffile(pos, square)
+    if (rank >= 2 and rank <= 4 and ffile >= 3 and ffile <= 6) and (board(pos, square['x'] ,square['y']) != "P") and (board(pos, square['x'] - 1 ,square['y'] - 1) != "p") and (board(pos, square['x'] + 1 ,square['y'] - 1) != "p"):
         v += 1
         if (board(pos, square['x'], square['y'] - 1) == "P" or board(pos, square['x'], square['y'] - 2) == "P" or board(pos, square['x'], square['y'] - 3) == "P") and not attack(colorflip(pos), {"x":square['x'], "y":7-square['y']}):
             v += 1

@@ -114,7 +114,7 @@ def rule50(pos, square = None):
 def translate_board(board: chess.Board):
     pos = {}
     pos['m'] = [board.halfmove_clock, board.fullmove_number]
-    pos['e'] = board.ep_square
+    pos['e'] = None if board.ep_square is None else (board.ep_square % 8, 7 - board.ep_square // 8)
     pos['w'] = board.turn
     pos['c'] = [board.has_kingside_castling_rights(True), board.has_queenside_castling_rights(True), board.has_kingside_castling_rights(False), board.has_queenside_castling_rights(False)]
     arr = [['-' for i in range(8)] for j in range(8)]
