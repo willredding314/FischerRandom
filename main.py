@@ -61,8 +61,8 @@ def minimax_modded(board: chess.Board, depth, alpha, beta, maximizing_player, lo
         return best_mv, torch.clamp(value + ((random.random() * 2 - 1) / 100), min=0, max=1)
 
 def run_game(board, model):
-    values_for_white = []
-    values_for_black = []
+    positions_for_white = []
+    positions_for_black = []
     white_to_move = True
     
     for i in range(1000):
@@ -71,12 +71,20 @@ def run_game(board, model):
             break
         board.push(move)
         if white_to_move:
-            values_for_white.append(board.copy())
+            positions_for_white.append(board.copy())
         else:
-            values_for_black.append(board.copy())
+            positions_for_black.append(board.copy())
         white_to_move = not white_to_move
-    return values_for_white, values_for_black, not white_to_move # return winner (the side that does NOT have the next move)
+    # fix end to make sure we have correct winner
+    return positions_for_white, positions_for_black, not white_to_move # return winner (the side that does NOT have the next move)
         
+def get_starting_position(positions):
+    if len(position) == 0:
+        return chess.Board(chess960=True)
+    else:
+        return positions.pop()
+
+
 for i in range(1):
     board = chess.Board(chess960=True)
     white_positions, black_positions, white_wins = run_game(board, copy.deepcopy(model))
