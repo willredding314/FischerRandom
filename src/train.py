@@ -50,4 +50,4 @@ def train_with_random_games(model, criterion, optimizer, num_games, depth):
             optimizer.step()
 
         print("Completed game " + str(i))
-        torch.save(model.fc1.weight, "rand_games_linear_weights.pt")
+        torch.save(model.fc1.weight, "rand_games_linear_weights2.pt")
