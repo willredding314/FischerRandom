@@ -4,13 +4,13 @@ import torch
 from src.minimax import minimax_engine
 
 
-def run_game(board, model):
+def run_game(board, model, depth):
     positions_for_white = []
     positions_for_black = []
     white_to_move = True
     
     while True:
-        move, val = minimax_engine(board, 1, 0, 1, board.turn, model)
+        move, val = minimax_engine(board, depth - 1, 0, 1, board.turn, model)
         if move is None:
             break
         board.push(move)
@@ -25,7 +25,7 @@ def run_game(board, model):
 def train_with_random_games(model, criterion, optimizer, num_games, depth):
     for i in range(num_games):
         board = chess.Board(chess960=True)
-        white_positions, black_positions, white_wins = run_game(board, copy.deepcopy(model))
+        white_positions, black_positions, white_wins = run_game(board, copy.deepcopy(model), depth)
 
         white_target = 0
         if white_wins:
@@ -50,4 +50,4 @@ def train_with_random_games(model, criterion, optimizer, num_games, depth):
             optimizer.step()
 
         print("Completed game " + str(i))
-        torch.save(model.fc1.weight, "rand_games_linear_weights2.pt")
+        torch.save(model.fc1.weight, "x_rand_games_linear_weights_d2.pt")

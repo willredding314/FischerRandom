@@ -10,4 +10,4 @@ model = Predictor()
 criterion = torch.nn.BCELoss()
 optimizer = torch.optim.SGD(model.parameters())
 
-train_with_random_games(model, criterion, optimizer, 1, 6)
+train_with_random_games(model, criterion, optimizer, 1000, 2)
