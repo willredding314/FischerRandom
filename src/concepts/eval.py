@@ -6,17 +6,21 @@ from src.concepts.board_rep import *
 
 def value_tensor(board):
     pos = translate_board(board)
-    value_vector = np.zeros(11)
-    value_vector[0] = piece_value_mg(pos) - piece_value_mg(colorflip(pos))
+    value_vector = np.zeros(14)
+    value_vector[0] = (piece_value_mg(pos) - piece_value_mg(colorflip(pos))) * 10
     value_vector[1] = psqt_mg(pos) - psqt_mg(colorflip(pos))
-    value_vector[3] = imbalance_total(pos)
-    value_vector[4] = pawns_mg(pos) - pawns_mg(colorflip(pos))
-    value_vector[5] = pieces_mg(pos) - pieces_mg(colorflip(pos))
-    value_vector[6] = mobility_mg(pos) - mobility_mg(colorflip(pos))
-    value_vector[7] = threats_mg(pos) - threats_mg(colorflip(pos))
-    value_vector[8] = passed_mg(pos) - passed_mg(colorflip(pos))
-    value_vector[9] = space(pos) - space(colorflip(pos))
-    value_vector[10] = king_mg(pos) - king_mg(colorflip(pos))
+    value_vector[2] = imbalance_total(pos)
+    value_vector[3] = pawns_mg(pos) - pawns_mg(colorflip(pos))
+    value_vector[4] = pieces_mg(pos) - pieces_mg(colorflip(pos))
+    value_vector[5] = mobility_mg(pos) - mobility_mg(colorflip(pos))
+    value_vector[6] = threats_mg(pos) - threats_mg(colorflip(pos))
+    value_vector[7] = passed_mg(pos) - passed_mg(colorflip(pos))
+    value_vector[8] = space(pos) - space(colorflip(pos))
+    value_vector[9] = king_mg(pos) - king_mg(colorflip(pos))
+    value_vector[10] = rule50(pos)
+    value_vector[11] = tempo(pos)
+    value_vector[12] = phase(pos)
+    value_vector[13] = scale_factor(pos)
     return torch.tensor(value_vector, dtype=torch.float64, requires_grad=True)
 
 def main_evaluation(pos):

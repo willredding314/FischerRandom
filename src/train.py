@@ -1,7 +1,7 @@
 import copy
 import chess
 import torch
-from src.minimax import minimax_engine
+from minimax_concepts import minimax_engine
 
 
 def run_game(board, model, depth):
@@ -50,4 +50,4 @@ def train_with_random_games(model, criterion, optimizer, num_games, depth):
             optimizer.step()
 
         print("Completed game " + str(i))
-        torch.save(model.fc1.weight, "rand_games_linear_weights.pt")
+        torch.save(model, "concept_model.pt")

@@ -95,7 +95,7 @@ def get_move(board: chess.Board, depth):
     if len(best_moves) == 0:
         return None, best_value
     return random.choice(best_moves), best_value
-
+    
 # Initiating board
 board = chess.Board(chess960=True)
 #board.set_chess960_pos(340)

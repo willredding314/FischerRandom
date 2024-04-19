@@ -41,7 +41,7 @@ pos = {
 }
 
 def scale_factor(pos, eg=None):
-    from eval import end_game_evaluation, colorflip, pawn_count, queen_count, bishop_count, knight_count, non_pawn_material, opposite_bishops, candidate_passed, piece_count
+    from src.concepts.eval import end_game_evaluation, colorflip, pawn_count, queen_count, bishop_count, knight_count, non_pawn_material, opposite_bishops, candidate_passed, piece_count
 
     if eg is None:
         eg = end_game_evaluation(pos)
@@ -92,7 +92,7 @@ def scale_factor(pos, eg=None):
     return sf
 
 def phase(pos):
-    from eval import non_pawn_material
+    from src.concepts.eval import non_pawn_material
 
     midgameLimit = 15258
     endgameLimit = 3915

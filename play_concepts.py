@@ -1,11 +1,12 @@
+import random
 import chess
 import torch
-from src.minimax import minimax_engine
+from minimax_concepts import minimax_engine
 from src.predictor import Predictor
 
 torch.set_default_dtype(torch.float64)
 
-model_path = "rand_games_linear_weights_inc.pt"
+model_path = "concepts.pt"
 depth = 3
 
 weights = torch.load(model_path)
@@ -13,7 +14,7 @@ play_model = Predictor()
 play_model.fc1.weight = weights 
 
 
-board = chess.Board(chess960=True)
+board = chess.Board.from_chess960_pos(random.randint(1, 960))
 pgn = ""
 
 for i in range(1000):
